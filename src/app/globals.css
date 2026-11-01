@@ -1,0 +1,217 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ───────────── Git theme ─────────────
+   Paper & ink from git-scm.com, Git orange as the single accent.
+   Branch lanes use the column colors of `git log --graph`.
+   Semantic names only: accent / ok / warn / bad / info. */
+:root,
+[data-theme="light"] {
+  --bg: #f0efe7;
+  --surface: #fbfaf6;
+  --surface-2: #e7e4d8;
+  --elevated: #ffffff;
+  --border: #d9d5c5;
+  --border-strong: #bdb6a0;
+  --text: #2b2620;
+  --text-2: #4e443c;
+  --text-3: #6b6152;
+  --accent: #c8401f; /* buttons: white text 5:1 */
+  --accent-mark: #f05032; /* Git orange, for marks & dots */
+  --accent-fg: #b8361c; /* accent text on paper */
+  --accent-soft: rgba(240, 80, 50, 0.1);
+  --ok: #2f6f2c;
+  --ok-soft: rgba(47, 111, 44, 0.1);
+  --on-ok: #ffffff;
+  --warn: #8a5a00;
+  --warn-soft: rgba(176, 120, 0, 0.12);
+  --bad: #b42318;
+  --bad-soft: rgba(180, 35, 24, 0.08);
+  --info: #1f5f99;
+  --info-soft: rgba(31, 95, 153, 0.1);
+  --lane-0: #e0482b;
+  --lane-1: #3d8a37;
+  --lane-2: #2b6cb0;
+  --lane-3: #b7860b;
+  --lane-4: #9b4a9b;
+  --lane-5: #1f8a80;
+  --shadow: 0 1px 0 rgba(43, 38, 32, 0.04);
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --bg: #1b1a17;
+  --surface: #22201c;
+  --surface-2: #2b2924;
+  --elevated: #2f2c27;
+  --border: #3a3731;
+  --border-strong: #4d4941;
+  --text: #eeeae0;
+  --text-2: #c2baa8;
+  --text-3: #9b937f;
+  --accent: #c8401f;
+  --accent-mark: #f05032;
+  --accent-fg: #ff7a59;
+  --accent-soft: rgba(240, 80, 50, 0.14);
+  --ok: #8fbf6a;
+  --ok-soft: rgba(143, 191, 106, 0.13);
+  --on-ok: #1b1a17;
+  --warn: #e0b04f;
+  --warn-soft: rgba(224, 176, 79, 0.13);
+  --bad: #f06a5a;
+  --bad-soft: rgba(240, 106, 90, 0.12);
+  --info: #7fb0d9;
+  --info-soft: rgba(127, 176, 217, 0.12);
+  --lane-0: #f05032;
+  --lane-1: #8fbf6a;
+  --lane-2: #7fb0d9;
+  --lane-3: #e0b04f;
+  --lane-4: #d397c8;
+  --lane-5: #7fcfc0;
+  --shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+  color-scheme: dark;
+}
+
+/* The terminal is a warm dark terminal in both themes, using git's own output colors. */
+:root {
+  --term-bg: #1d1b17;
+  --t-text: #e8e4d8;
+  --t-muted: #9a937f;
+  --t-green: #a9d07b;
+  --t-red: #f2685a;
+  --t-yellow: #f0c060;
+  --t-blue: #86b6dd;
+  --t-magenta: #d397c8;
+  --t-cyan: #7fcfc0;
+  --t-orange: #ff8a65;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-elevated: var(--elevated);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-fg: var(--text);
+  --color-fg-2: var(--text-2);
+  --color-fg-3: var(--text-3);
+  --color-accent: var(--accent);
+  --color-accent-mark: var(--accent-mark);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-term: var(--term-bg);
+  --color-t-text: var(--t-text);
+  --color-t-muted: var(--t-muted);
+  --color-t-green: var(--t-green);
+  --color-t-red: var(--t-red);
+  --color-t-yellow: var(--t-yellow);
+  --color-t-blue: var(--t-blue);
+  --color-t-magenta: var(--t-magenta);
+  --color-t-cyan: var(--t-cyan);
+  --color-t-orange: var(--t-orange);
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+  --radius-card: 0.625rem;
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+button:not(:disabled),
+[role="button"],
+[role="tab"],
+[role="radio"],
+[role="option"],
+summary,
+label:has(input[type="radio"]),
+select {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-mark);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Terminal is always dark, in both themes, like a real terminal. */
+.terminal {
+  color: var(--t-text);
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+[data-motion="reduced"] *,
+[data-motion="reduced"] *::before,
+[data-motion="reduced"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+@keyframes caret {
+  50% {
+    opacity: 0;
+  }
+}
+
+.caret {
+  animation: caret 1.1s steps(1) infinite;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -16;
+  }
+}
+
+.dash-flow {
+  animation: dash 0.9s linear infinite;
+}
