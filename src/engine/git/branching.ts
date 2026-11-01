@@ -56,6 +56,29 @@ export function gitBranch(ctx: Ctx, args: string[]) {
   const remoteOnly = flags.has("-r") || flags.has("--remotes");
   const verbose = flags.has("-v") || flags.has("-vv");
 
+  // tracking: git branch -u <upstream> [branch] / --set-upstream-to=<upstream> / --unset-upstream
+  const setTo = args.find((x) => x.startsWith("--set-upstream-to="));
+  if (flags.has("-u") || flags.has("--set-upstream-to") || setTo) {
+    const upstream = setTo ? setTo.split("=")[1] : pos[0];
+    const target = (setTo ? pos[0] : pos[1]) ?? currentBranch(repo);
+    if (!upstream) fail("fatal: option '--set-upstream-to' requires a value");
+    if (!target) fail("fatal: could not set upstream of HEAD when it does not point to any branch.");
+    if (!repo.branches[target]) fail(`fatal: branch '${target}' does not exist`);
+    if (!repo.remoteRefs[upstream])
+      fail(
+        [`fatal: the requested upstream branch '${upstream}' does not exist`, "hint: If you are planning on basing your work on an upstream", "hint: branch that already exists at the remote, you may need to", "hint: run \"git fetch\" to retrieve it."],
+        `Git doesn't know a remote branch called ${upstream}. Run git fetch first, or git branch -r to list remote branches.`,
+      );
+    repo.upstream[target] = upstream;
+    ctx.out(`branch '${target}' set up to track '${upstream}'.`);
+    return;
+  }
+  if (flags.has("--unset-upstream")) {
+    const target = pos[0] ?? currentBranch(repo);
+    if (!target || !repo.upstream[target]) fail(`fatal: branch '${target ?? "HEAD"}' has no upstream information`);
+    delete repo.upstream[target];
+    return;
+  }
   if (flags.has("-d") || flags.has("-D") || flags.has("--delete")) {
     if (!pos.length) fail("fatal: branch name required");
     for (const name of pos) {
@@ -110,12 +133,29 @@ export function gitBranch(ctx: Ctx, args: string[]) {
     for (const b of Object.keys(repo.branches).sort()) {
       const cur = currentBranch(repo) === b;
       let line = `${cur ? "*" : " "} ${b}`;
-      if (verbose) line += ` ${shortId(repo.branches[b])} ${oneLine(repo.commits[repo.branches[b]])}`;
+      if (verbose) {
+        line += ` ${shortId(repo.branches[b])}`;
+        const up = repo.upstream[b];
+        if (up && flags.has("-vv")) line += ` [${trackingSummary(repo, b, up)}]`;
+        line += ` ${oneLine(repo.commits[repo.branches[b]])}`;
+      }
       lines.push(line);
     }
   }
   if (showAll || remoteOnly) for (const r of Object.keys(repo.remoteRefs).sort()) lines.push(`  ${showAll ? "remotes/" : ""}${r}`);
   for (const l of lines) ctx.out(l, l.startsWith("*") ? "success" : "out");
+}
+
+/** "origin/main: ahead 1, behind 2" style summary used by `git branch -vv`. */
+function trackingSummary(repo: Repo, branch: string, up: string): string {
+  const remote = repo.remoteRefs[up];
+  if (!remote) return `${up}: gone`;
+  const la = ancestors(repo, repo.branches[branch]);
+  const ra = ancestors(repo, remote);
+  const ahead = [...la].filter((c) => !ra.has(c)).length;
+  const behind = [...ra].filter((c) => !la.has(c)).length;
+  const parts = [ahead && `ahead ${ahead}`, behind && `behind ${behind}`].filter(Boolean);
+  return parts.length ? `${up}: ${parts.join(", ")}` : up;
 }
 
 function switchToBranch(ctx: Ctx, repo: Repo, name: string) {

@@ -913,6 +913,119 @@ const teamSetup = (): World => {
   return { ...you, hosted: maya.hosted, hostedCommits: maya.hostedCommits, clock: maya.clock, seq: maya.seq };
 };
 
+const SITE_URL = "https://github.com/gitverse-team/website.git";
+
+/** A team repository on the simulated GitHub, with an open feature branch. Nothing local yet. */
+const teamWebsite = (): World => {
+  const team = scenario()
+    .run("git init")
+    .commit("Start website", { "README.md": "# Team Website\n", "index.html": INDEX_HTML }, "Maya")
+    .commit("Add styles", { "style.css": STYLE_CSS }, "Maya")
+    .run("git switch -c feature/blog")
+    .commit("Draft blog page", { "blog.html": "<h1>Blog</h1>\n" }, "Sam")
+    .run("git switch main")
+    .host(SITE_URL, "gitverse-team", "website")
+    .run(`git remote add origin ${SITE_URL}`, "git push -u origin main", "git push origin feature/blog")
+    .done();
+  return { ...emptyWorld(), hosted: team.hosted, hostedCommits: team.hostedCommits, clock: team.clock, seq: team.seq };
+};
+
+const cloneContribute: Lesson = {
+  id: "clone-contribute",
+  chapterId: "github",
+  title: "Clone & contribute",
+  tagline: "clone, remote branches, push a feature branch",
+  xp: 150,
+  concepts: ["clone", "origin", "remote-tracking branches", "upstream"],
+  commands: ["git clone", "git branch -a", "git switch -c", "git push -u origin <branch>"],
+  ui: { files: true, editor: true, stages: false, remote: true },
+  setup: teamWebsite,
+  recap: [
+    "git clone downloads a whole repository — every commit — and remembers where it came from as origin.",
+    "origin/main and origin/feature/blog are remote-tracking branches: Git's memory of what's on GitHub.",
+    "Work on your own branch, then git push -u origin <branch> publishes it and sets it as the upstream.",
+    "That pushed branch is what a pull request on GitHub is made from.",
+  ],
+  steps: [
+    {
+      kind: "discover",
+      title: "Joining a project that already exists",
+      body: [
+        "Most of the time you don't start a repository — you join one. Your team's website already lives on GitHub.",
+        "git clone copies the entire project, with its whole history, onto your computer. Git also remembers the address as origin, so you can push back later.",
+      ],
+      scene: "remote",
+    },
+    {
+      kind: "try",
+      title: "Clone the team's repository",
+      body: "Download the team website into this folder. The dot at the end means “clone right here”.",
+      command: `git clone ${SITE_URL} .`,
+      check: (w) => !!w.repo?.remotes.origin,
+      success: "You have the whole project: every file and every commit. Notice origin/main in the graph — that's where GitHub's main is.",
+    },
+    {
+      kind: "try",
+      title: "See every branch, including GitHub's",
+      body: "A plain git branch only lists your local branches. Add -a to also see the ones on GitHub.",
+      command: "git branch -a",
+      check: (_w, _s, ran) => ran.includes("branch"),
+      success: "remotes/origin/feature/blog is Sam's branch on GitHub. You have its commits, but no local branch for it — and you don't need one to start your own work.",
+    },
+    {
+      kind: "challenge",
+      title: "Challenge: contribute a footer",
+      body: "Create a branch called feature/footer, add footer.html in a commit, and publish your branch to GitHub so it tracks origin/feature/footer. Don't touch main.",
+      objectives: [
+        {
+          id: "branch",
+          label: "Work on a branch called feature/footer",
+          check: (w) => c.branchExists(w, "feature/footer"),
+          hints: ["Never commit straight to a shared main — make your own branch.", "git switch -c creates a branch and moves onto it.", "Type: git switch -c feature/footer"],
+        },
+        {
+          id: "commit",
+          label: "Commit footer.html on feature/footer",
+          check: (w) => {
+            const id = w.repo?.branches["feature/footer"];
+            return !!id && w.repo!.commits[id].tree["footer.html"] !== undefined;
+          },
+          hints: ["Create the file, stage it, commit it — while on feature/footer.", "touch footer.html, git add, git commit -m", 'echo "<footer>© Team</footer>" > footer.html && git add . && git commit -m "Add footer"'],
+        },
+        {
+          id: "pushed",
+          label: "GitHub has your branch, and it tracks origin/feature/footer",
+          check: (w) =>
+            !!w.repo &&
+            w.repo.upstream["feature/footer"] === "origin/feature/footer" &&
+            w.hosted[SITE_URL]?.branches["feature/footer"] === w.repo.branches["feature/footer"],
+          hints: [
+            "Publishing a new branch is a push. The first time, tell Git where it goes.",
+            "Use -u so Git remembers the upstream.",
+            "Type: git push -u origin feature/footer",
+          ],
+        },
+        {
+          id: "main",
+          label: "main is unchanged on GitHub",
+          check: (w, s) => w.hosted[SITE_URL]?.branches.main === s.hosted[SITE_URL]?.branches.main && c.hasRepo(w),
+          hints: ["Your work belongs on your branch, not main.", "If you pushed to main by accident, restart the lesson.", "Restart and make sure you switch to feature/footer before committing."],
+        },
+      ],
+      feedback: (w) => {
+        if (!w.repo) return null;
+        const b = currentBranch(w.repo);
+        if (b === "main" && w.repo.branches.main !== w.repo.remoteRefs["origin/main"])
+          return "You committed on main. Contributions go on their own branch — restart the lesson and create feature/footer first.";
+        if (b === "feature/footer" && w.repo.branches["feature/footer"] && !w.repo.upstream["feature/footer"] && w.hosted[SITE_URL]?.branches["feature/footer"])
+          return "Your branch is on GitHub, but it doesn't track it yet. Push with -u so plain git push and git status know where it goes.";
+        return null;
+      },
+    },
+    { kind: "celebrate" },
+  ],
+};
+
 const fetchPull: Lesson = {
   id: "fetch-pull",
   chapterId: "github",
@@ -996,7 +1109,8 @@ export const LESSONS = {
   revertLesson,
   lostCommit,
   firstPush,
+  cloneContribute,
   fetchPull,
 };
 
-export { REMOTE_URL, TEAM_URL };
+export { REMOTE_URL, SITE_URL, TEAM_URL };

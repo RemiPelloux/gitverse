@@ -7,9 +7,14 @@ const plexSans = IBM_Plex_Sans({ variable: "--font-plex-sans", subsets: ["latin"
 const plexMono = IBM_Plex_Mono({ variable: "--font-plex-mono", subsets: ["latin"], weight: ["400", "500", "600"] });
 
 export const metadata: Metadata = {
-  title: { default: "Gitverse — Learn Git by playing with it", template: "%s · Gitverse" },
+  title: { default: "Gitverse — Learn Git by using it", template: "%s · Gitverse" },
   description:
     "An interactive, beginner-friendly way to learn Git and GitHub. Type real commands, watch your history grow, and level up.",
+  openGraph: {
+    title: "Gitverse — Learn Git by using it",
+    description: "Type real Git commands and watch your repository's history grow, branch and merge. Free, no account needed.",
+    type: "website",
+  },
 };
 
 export const viewport: Viewport = {
