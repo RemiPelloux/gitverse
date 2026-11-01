@@ -64,8 +64,8 @@ export const CHAPTERS: Chapter[] = [
     title: "GitHub Fundamentals",
     tier: "advanced",
     description: "Remotes, push, fetch and pull with teammates.",
-    lessons: [L.firstPush, L.fetchPull],
-    upcoming: ["Clone", "Tracking branches"],
+    lessons: [L.firstPush, L.cloneContribute, L.fetchPull],
+    upcoming: [],
   },
   {
     id: "pull-requests",

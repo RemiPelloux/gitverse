@@ -64,6 +64,8 @@ export interface HostedRepo {
   name: string;
   branches: Record<string, string>;
   defaultBranch: string;
+  /** Tags published with `git push --tags` / `git push origin <tag>`. */
+  tags?: Record<string, string>;
 }
 
 export interface Repo {
@@ -133,6 +135,7 @@ export type GitEvent =
   | { type: "conflict"; paths: string[] }
   | { type: "push"; remote: string; branch: string; id: string }
   | { type: "fetch"; remote: string; updated: string[] }
+  | { type: "clone"; url: string }
   | { type: "reset"; mode: string; to: string }
   | { type: "rebase"; onto: string; rewritten: Array<[string, string]> }
   | { type: "file-change"; paths: string[] }

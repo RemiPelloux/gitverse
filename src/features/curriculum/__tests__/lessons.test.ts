@@ -65,6 +65,7 @@ const SOLUTIONS: Record<string, string[]> = {
   "undo-safely": ["git revert <banner>"],
   "lost-commit": ["git reset --hard <pricing>"],
   "first-push": ['echo "hi" > about.txt', "git add .", 'git commit -m "Add about"', "git push"],
+  "clone-contribute": ["git switch -c feature/footer", 'echo "<footer>x</footer>" > footer.html', "git add .", 'git commit -m "Add footer"', "git push -u origin feature/footer"],
   "fetch-pull": ["git pull", 'echo "# Tacos" > tacos.md', "git add .", 'git commit -m "Add tacos"', "git push"],
 };
 
@@ -81,6 +82,14 @@ describe("curriculum", () => {
     let w = l.setup();
     w = execute(w, "git branch feature/login").world;
     expect(ch.feedback!(w, l.setup())).toMatch(/still on main/);
+  });
+  it("clone challenge notices a push without tracking", () => {
+    const l = getLesson("clone-contribute")!;
+    const ch = l.steps.find((s) => s.kind === "challenge") as ChallengeStep;
+    let w = execute(l.setup(), "git clone https://github.com/gitverse-team/website.git .").world;
+    w = execute(w, 'git switch -c feature/footer && echo x > footer.html && git add . && git commit -m f && git push origin feature/footer').world;
+    expect(ch.feedback!(w, l.setup())).toMatch(/doesn't track/);
+    expect(ch.objectives.find((o) => o.id === "pushed")!.check(w, l.setup(), [])).toBe(false);
   });
   it("lost-commit setup really hides the commit", () => {
     const w = getLesson("lost-commit")!.setup();

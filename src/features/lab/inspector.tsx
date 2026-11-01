@@ -1,7 +1,7 @@
 "use client";
 
 import { clsx } from "clsx";
-import { Cloud, GitBranch, GitCommitHorizontal, GitMerge, MousePointerClick } from "lucide-react";
+import { Cloud, GitBranch, GitCommitHorizontal, GitMerge, MousePointerClick, Tag } from "lucide-react";
 import { ancestors, shortId, type World } from "@/engine";
 import { DiffBlock } from "./editor";
 import { useLab } from "./store";
@@ -155,6 +155,19 @@ export function RemoteView({ world }: { world: World }) {
                 <p className="mt-1 text-xs text-fg-3">Empty repository — push to publish your commits.</p>
               )}
             </div>
+            {Object.keys(host.tags ?? {}).length > 0 && (
+              <div className="border-t border-line px-3 py-2">
+                <p className="text-[11px] font-semibold text-fg-3">Tags on GitHub</p>
+                <ul className="mt-1.5 flex flex-wrap gap-1.5">
+                  {Object.entries(host.tags!).map(([t, id]) => (
+                    <li key={t} className="flex items-center gap-1 rounded-md bg-warn-soft px-1.5 py-0.5 font-mono text-[11px] text-warn" title={shortId(id)}>
+                      <Tag className="size-3" />
+                      {t}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {log.length > 0 && (
               <div className="border-t border-line px-3 py-2">
                 <p className="text-[11px] font-semibold text-fg-3 ">Commits on {host.defaultBranch}</p>

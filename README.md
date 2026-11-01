@@ -1,6 +1,8 @@
 # Gitverse
 
-**Learn Git by playing with it.** A beginner-first, gamified web app. Learners type real Git commands into a safe simulated terminal and watch their repository's history grow, branch and merge in real time.
+**Learn Git by using it.** A beginner-first, gamified web app. Learners type real Git commands into a safe simulated terminal and watch their repository's history grow, branch and merge in real time.
+
+[![CI](https://github.com/RemiPelloux/gitverse/actions/workflows/ci.yml/badge.svg)](https://github.com/RemiPelloux/gitverse/actions/workflows/ci.yml) [![Deploy](https://github.com/RemiPelloux/gitverse/actions/workflows/pages.yml/badge.svg)](https://github.com/RemiPelloux/gitverse/actions/workflows/pages.yml)
 
 **Live:** https://remipelloux.github.io/gitverse/
 
@@ -13,7 +15,8 @@ npm run e2e        # Playwright: desktop + phone journeys (builds required: npm 
 
 ## Deploying
 
-Every push to `master` runs `.github/workflows/pages.yml`: unit tests, then a static build (`STATIC_EXPORT=1 BASE_PATH=/<repo>`) deployed to GitHub Pages. Gitverse runs entirely in the browser, so the static site is the whole app. To try the static build locally:
+- `.github/workflows/ci.yml` runs on every push and pull request: typecheck, lint, unit tests, production build and the Playwright browser tests (desktop + phone).
+- Every push to `master` runs `.github/workflows/pages.yml`: unit tests, then a static build (`STATIC_EXPORT=1 BASE_PATH=/<repo>`) deployed to GitHub Pages. Gitverse runs entirely in the browser, so the static site is the whole app. To try the static build locally:
 
 ```bash
 STATIC_EXPORT=1 BASE_PATH=/gitverse npx next build   # writes out/
@@ -44,7 +47,7 @@ Every view (graph, terminal output, files, stages, lesson objectives) is derived
 
 ## What's built
 
-- Routes: landing (with a playable hero demo), `/learn` dashboard + learning path + onboarding, 12 playable lessons across chapters 1, 2, 3, 4, 6, 7 (including 2 boss challenges), `/playground` (5 starting repos, time travel, undo/redo, shareable `#s=` links, full-screen graph), `/commands` encyclopedia with live before/after demos, `/profile` (badges, theme, motion, terminal mode, streak toggle, shortcuts, reset).
+- Routes: landing (with a playable hero demo), `/learn` dashboard + learning path + onboarding, 13 playable lessons across chapters 1, 2, 3, 4, 6, 7 (including 2 boss challenges); chapter 7 (GitHub) is complete: push, clone & contribute with a feature branch, fetch/pull with a teammate, `/playground` (5 starting repos, time travel, undo/redo, shareable `#s=` links, full-screen graph), `/commands` encyclopedia with live before/after demos, `/profile` (badges, theme, motion, terminal mode, streak toggle, shortcuts, reset).
 - The interface grows with the learner: lessons enable files → editor → remote panels progressively. The terminal has an Assisted mode (suggestion, word-by-word explanation, Run button, plain-language error explanations) and a Real mode.
 - Responsive: three columns on desktop (resizable, remembered), two on tablet, tabbed Guide/Graph/Terminal/Files on phones.
 - Accessibility: reduced motion (system/forced), keyboard-focusable commits, screen-reader graph summary and commit list, ARIA tabs and live regions.

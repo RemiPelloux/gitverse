@@ -378,17 +378,27 @@ export function gitLog(ctx: Ctx, args: string[]) {
     else revs.push(a);
   }
   const starts: string[] = [];
+  const excludes: string[] = [];
   if (allRefs) {
     starts.push(...Object.values(repo.branches), ...Object.values(repo.remoteRefs), ...Object.values(repo.tags));
     const h = headCommitId(repo);
     if (h) starts.push(h);
   } else if (revs.length) {
+    const resolve = (r: string) => {
+      const id = resolveRev(repo, r || "HEAD");
+      if (!id) fail([`fatal: ambiguous argument '${r}': unknown revision or path not in the working tree.`]);
+      return id;
+    };
     for (const r of revs) {
-      const id = resolveRev(repo, r);
-      if (!id)
-        fail([`fatal: ambiguous argument '${r}': unknown revision or path not in the working tree.`]);
-      starts.push(id);
+      const range = /^(.*?)\.\.(.*)$/.exec(r);
+      if (range) {
+        // A..B = commits reachable from B but not from A (e.g. main..origin/main = what GitHub has that you don't)
+        excludes.push(resolve(range[1]));
+        starts.push(resolve(range[2]));
+      } else if (r.startsWith("^")) excludes.push(resolve(r.slice(1)));
+      else starts.push(resolve(r));
     }
+    if (!starts.length) starts.push(resolve("HEAD"));
   } else {
     const h = headCommitId(repo);
     if (!h)
@@ -400,6 +410,7 @@ export function gitLog(ctx: Ctx, args: string[]) {
   }
   const set = new Set<string>();
   for (const s of starts) for (const a of ancestors(repo, s)) set.add(a);
+  for (const x of excludes) for (const a of ancestors(repo, x)) set.delete(a);
   const commits = [...set].map((id) => repo.commits[id]).filter(Boolean).sort((a, b) => b.seq - a.seq).slice(0, limit);
 
   const columns: string[] = [];
