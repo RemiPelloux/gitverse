@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { GitEvent, World } from "@/engine";
+import type { TerminalSnapshot } from "@/features/lab/persistence";
 import { CHAPTERS } from "@/features/curriculum";
 import {
   achievementsForEvent,
@@ -41,7 +42,7 @@ interface ProgressState {
   activity: Record<string, DayActivity>;
   questsClaimed: Record<string, string[]>;
   /** Autosaved in-progress lessons. */
-  saves: Record<string, { step: number; world: World; start: World }>;
+  saves: Record<string, { step: number; world: World; start: World; terminal?: TerminalSnapshot }>;
   settings: Settings;
   toasts: Toast[];
 
@@ -50,7 +51,7 @@ interface ProgressState {
   recordCommand: (command: string | null, ok: boolean, events: GitEvent[], where: "lesson" | "playground") => void;
   completeLesson: (lessonId: string, xp: number, boss: boolean) => { gained: number; first: boolean };
   unlock: (id: string) => void;
-  saveLesson: (id: string, step: number, world: World, start: World) => void;
+  saveLesson: (id: string, step: number, world: World, start: World, terminal?: TerminalSnapshot) => void;
   clearLesson: (id: string) => void;
   updateSettings: (s: Partial<Settings>) => void;
   dismissToast: (id: number) => void;
@@ -70,7 +71,7 @@ const initial = {
   activity: {},
   questsClaimed: {},
   saves: {},
-  settings: { terminalMode: "assisted", theme: "dark", motion: "system", showStreak: true } as Settings,
+  settings: { terminalMode: "assisted", theme: "light", motion: "system", showStreak: true } as Settings,
   toasts: [] as Toast[],
 };
 
@@ -146,7 +147,7 @@ export const useProgress = create<ProgressState>()(
           return { gained, first };
         },
         unlock,
-        saveLesson: (id, step, world, start) => set((s) => ({ saves: { ...s.saves, [id]: { step, world, start } } })),
+        saveLesson: (id, step, world, start, terminal) => set((s) => ({ saves: { ...s.saves, [id]: { step, world, start, terminal } } })),
         clearLesson: (id) =>
           set((s) => {
             const saves = { ...s.saves };

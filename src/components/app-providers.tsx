@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import { useEffect, type ReactNode } from "react";
-import { Award, Sparkles, Target, X } from "lucide-react";
+import { Award, GitCommitHorizontal, Target, X } from "lucide-react";
 import { useProgress, type Toast } from "@/features/progress/store";
 import { ACHIEVEMENTS } from "@/features/progress/rules";
 
@@ -48,7 +48,7 @@ function ToastItem({ toast: t, onDismiss }: { toast: Toast; onDismiss: () => voi
     return () => clearTimeout(timer);
   }, [t.kind, onDismiss]);
   const ach = t.kind === "achievement" ? ACHIEVEMENTS.find((a) => a.id === t.detail) : null;
-  const Icon = t.kind === "achievement" ? Award : t.kind === "quest" ? Target : Sparkles;
+  const Icon = t.kind === "achievement" ? Award : t.kind === "quest" ? Target : GitCommitHorizontal;
   const compact = t.kind === "xp";
   return (
     <motion.div
@@ -57,17 +57,17 @@ function ToastItem({ toast: t, onDismiss }: { toast: Toast; onDismiss: () => voi
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.15 } }}
       transition={{ type: "spring", stiffness: 380, damping: 30 }}
-      className={`pointer-events-auto flex w-full max-w-xs items-center gap-3 rounded-2xl border border-line bg-elevated/95 shadow-[var(--shadow)] backdrop-blur ${compact ? "p-2 pr-2" : "p-3 pr-2"}`}
+      className={`pointer-events-auto flex w-full max-w-xs items-center gap-3 rounded-lg border border-line bg-elevated shadow-[var(--shadow)] ${compact ? "p-2 pr-2" : "p-3 pr-2"}`}
       role="status"
     >
-      <span className={`grid shrink-0 place-items-center rounded-xl ${compact ? "size-7" : "size-9"} ${t.kind === "achievement" ? "bg-amber-soft text-amber" : t.kind === "quest" ? "bg-mint-soft text-mint" : "bg-violet-soft text-violet-2"}`}>
+      <span className={`grid shrink-0 place-items-center rounded-md ${compact ? "size-7" : "size-9"} ${t.kind === "achievement" ? "bg-warn-soft text-warn" : t.kind === "quest" ? "bg-ok-soft text-ok" : "bg-accent-soft text-accent-fg"}`}>
         <Icon className="size-4" />
       </span>
       <div className="min-w-0 flex-1">
         <p className={compact ? "truncate text-xs font-medium" : "text-sm font-medium"}>{ach ? `Badge: ${ach.title}` : t.title}</p>
         <p className="truncate text-xs text-fg-2">{ach ? ach.description : t.detail}</p>
       </div>
-      <button className="rounded-lg p-1 text-fg-3 hover:text-fg" onClick={onDismiss} aria-label="Dismiss">
+      <button className="rounded-lg p-1 text-fg-3 hover:text-fg pointer-coarse:p-2.5" onClick={onDismiss} aria-label="Dismiss">
         <X className="size-4" />
       </button>
     </motion.div>

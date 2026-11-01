@@ -2,74 +2,89 @@
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-/* ───────────── Design tokens ─────────────
-   Deep navy surfaces, soft violet + mint accents.
-   Lane colors are paired with labels so branch identity never relies on color alone. */
+/* ───────────── Git theme ─────────────
+   Paper & ink from git-scm.com, Git orange as the single accent.
+   Branch lanes use the column colors of `git log --graph`.
+   Semantic names only: accent / ok / warn / bad / info. */
 :root,
+[data-theme="light"] {
+  --bg: #f0efe7;
+  --surface: #fbfaf6;
+  --surface-2: #e7e4d8;
+  --elevated: #ffffff;
+  --border: #d9d5c5;
+  --border-strong: #bdb6a0;
+  --text: #2b2620;
+  --text-2: #4e443c;
+  --text-3: #6b6152;
+  --accent: #c8401f; /* buttons: white text 5:1 */
+  --accent-mark: #f05032; /* Git orange, for marks & dots */
+  --accent-fg: #b8361c; /* accent text on paper */
+  --accent-soft: rgba(240, 80, 50, 0.1);
+  --ok: #2f6f2c;
+  --ok-soft: rgba(47, 111, 44, 0.1);
+  --on-ok: #ffffff;
+  --warn: #8a5a00;
+  --warn-soft: rgba(176, 120, 0, 0.12);
+  --bad: #b42318;
+  --bad-soft: rgba(180, 35, 24, 0.08);
+  --info: #1f5f99;
+  --info-soft: rgba(31, 95, 153, 0.1);
+  --lane-0: #e0482b;
+  --lane-1: #3d8a37;
+  --lane-2: #2b6cb0;
+  --lane-3: #b7860b;
+  --lane-4: #9b4a9b;
+  --lane-5: #1f8a80;
+  --shadow: 0 1px 0 rgba(43, 38, 32, 0.04);
+  color-scheme: light;
+}
+
 [data-theme="dark"] {
-  --bg: #080b17;
-  --bg-glow-1: rgba(139, 92, 246, 0.16);
-  --bg-glow-2: rgba(52, 211, 153, 0.08);
-  --surface: #0f1324;
-  --surface-2: #151a30;
-  --elevated: #1b2140;
-  --border: #252b4a;
-  --border-strong: #343c63;
-  --text: #f1f2fa;
-  --text-2: #a3a9c9;
-  --text-3: #6f7699;
-  --violet: #8b5cf6;
-  --violet-2: #a78bfa;
-  --violet-soft: rgba(139, 92, 246, 0.14);
-  --mint: #34d399;
-  --mint-soft: rgba(52, 211, 153, 0.14);
-  --amber: #fbbf24;
-  --amber-soft: rgba(251, 191, 36, 0.14);
-  --coral: #fb7185;
-  --coral-soft: rgba(251, 113, 133, 0.14);
-  --sky: #38bdf8;
-  --lane-0: #a78bfa;
-  --lane-1: #34d399;
-  --lane-2: #38bdf8;
-  --lane-3: #fbbf24;
-  --lane-4: #f472b6;
-  --lane-5: #fb923c;
-  --term-bg: #0a0d1c;
-  --shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 12px 32px -12px rgba(0, 0, 0, 0.6);
+  --bg: #1b1a17;
+  --surface: #22201c;
+  --surface-2: #2b2924;
+  --elevated: #2f2c27;
+  --border: #3a3731;
+  --border-strong: #4d4941;
+  --text: #eeeae0;
+  --text-2: #c2baa8;
+  --text-3: #9b937f;
+  --accent: #c8401f;
+  --accent-mark: #f05032;
+  --accent-fg: #ff7a59;
+  --accent-soft: rgba(240, 80, 50, 0.14);
+  --ok: #8fbf6a;
+  --ok-soft: rgba(143, 191, 106, 0.13);
+  --on-ok: #1b1a17;
+  --warn: #e0b04f;
+  --warn-soft: rgba(224, 176, 79, 0.13);
+  --bad: #f06a5a;
+  --bad-soft: rgba(240, 106, 90, 0.12);
+  --info: #7fb0d9;
+  --info-soft: rgba(127, 176, 217, 0.12);
+  --lane-0: #f05032;
+  --lane-1: #8fbf6a;
+  --lane-2: #7fb0d9;
+  --lane-3: #e0b04f;
+  --lane-4: #d397c8;
+  --lane-5: #7fcfc0;
+  --shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
   color-scheme: dark;
 }
 
-[data-theme="light"] {
-  --bg: #f6f6fb;
-  --bg-glow-1: rgba(139, 92, 246, 0.1);
-  --bg-glow-2: rgba(16, 185, 129, 0.06);
-  --surface: #ffffff;
-  --surface-2: #f3f3fa;
-  --elevated: #ffffff;
-  --border: #e3e3ef;
-  --border-strong: #cfd0e2;
-  --text: #15172b;
-  --text-2: #4f5578;
-  --text-3: #8086a6;
-  --violet: #7c3aed;
-  --violet-2: #6d28d9;
-  --violet-soft: rgba(124, 58, 237, 0.1);
-  --mint: #059669;
-  --mint-soft: rgba(5, 150, 105, 0.1);
-  --amber: #b45309;
-  --amber-soft: rgba(217, 119, 6, 0.12);
-  --coral: #e11d48;
-  --coral-soft: rgba(225, 29, 72, 0.08);
-  --sky: #0284c7;
-  --lane-0: #7c3aed;
-  --lane-1: #059669;
-  --lane-2: #0284c7;
-  --lane-3: #d97706;
-  --lane-4: #db2777;
-  --lane-5: #ea580c;
-  --term-bg: #121527;
-  --shadow: 0 1px 2px rgba(20, 20, 50, 0.06), 0 12px 32px -16px rgba(20, 20, 50, 0.18);
-  color-scheme: light;
+/* The terminal is a warm dark terminal in both themes, using git's own output colors. */
+:root {
+  --term-bg: #1d1b17;
+  --t-text: #e8e4d8;
+  --t-muted: #9a937f;
+  --t-green: #a9d07b;
+  --t-red: #f2685a;
+  --t-yellow: #f0c060;
+  --t-blue: #86b6dd;
+  --t-magenta: #d397c8;
+  --t-cyan: #7fcfc0;
+  --t-orange: #ff8a65;
 }
 
 @theme inline {
@@ -82,20 +97,31 @@
   --color-fg: var(--text);
   --color-fg-2: var(--text-2);
   --color-fg-3: var(--text-3);
-  --color-violet: var(--violet);
-  --color-violet-2: var(--violet-2);
-  --color-violet-soft: var(--violet-soft);
-  --color-mint: var(--mint);
-  --color-mint-soft: var(--mint-soft);
-  --color-amber: var(--amber);
-  --color-amber-soft: var(--amber-soft);
-  --color-coral: var(--coral);
-  --color-coral-soft: var(--coral-soft);
-  --color-sky: var(--sky);
+  --color-accent: var(--accent);
+  --color-accent-mark: var(--accent-mark);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
   --color-term: var(--term-bg);
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
-  --radius-card: 1.25rem;
+  --color-t-text: var(--t-text);
+  --color-t-muted: var(--t-muted);
+  --color-t-green: var(--t-green);
+  --color-t-red: var(--t-red);
+  --color-t-yellow: var(--t-yellow);
+  --color-t-blue: var(--t-blue);
+  --color-t-magenta: var(--t-magenta);
+  --color-t-cyan: var(--t-cyan);
+  --color-t-orange: var(--t-orange);
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+  --radius-card: 0.625rem;
 }
 
 html {
@@ -103,30 +129,35 @@ html {
 }
 
 body {
-  background:
-    radial-gradient(1200px 600px at 10% -10%, var(--bg-glow-1), transparent 60%),
-    radial-gradient(900px 500px at 100% 0%, var(--bg-glow-2), transparent 60%),
-    var(--bg);
-  background-attachment: fixed;
+  background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
 ::selection {
-  background: var(--violet-soft);
+  background: var(--accent-soft);
+}
+
+button:not(:disabled),
+[role="button"],
+[role="tab"],
+[role="radio"],
+[role="option"],
+summary,
+label:has(input[type="radio"]),
+select {
+  cursor: pointer;
 }
 
 :focus-visible {
-  outline: 2px solid var(--violet);
+  outline: 2px solid var(--accent-mark);
   outline-offset: 2px;
   border-radius: 6px;
 }
 
 /* Terminal is always dark, in both themes, like a real terminal. */
 .terminal {
-  --t-text: #e6e8f5;
-  --t-muted: #7c83a8;
   color: var(--t-text);
 }
 

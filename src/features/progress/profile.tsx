@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Accessibility, Keyboard, Palette, RotateCcw, SquareTerminal, Trophy } from "lucide-react";
 import { Button, Kbd } from "@/components/ui/button";
 import { Card, DynamicIcon, ProgressBar, useHydrated } from "@/components/ui/misc";
+import { PLAYGROUND_KEY, removeKey } from "@/features/lab/persistence";
 import { useProgress, type Settings } from "./store";
 import { ACHIEVEMENTS, LEVEL_TITLES, levelFor } from "./rules";
 
@@ -21,7 +22,7 @@ function ProfileInner() {
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-4 pt-8 pb-28 md:pb-16">
       <Card className="flex flex-wrap items-center gap-5 p-6">
-        <span className="grid size-16 place-items-center rounded-3xl bg-gradient-to-br from-violet to-mint text-2xl font-bold text-white">{lv.level}</span>
+        <span className="grid size-16 place-items-center rounded-lg bg-accent text-2xl font-bold text-white">{lv.level}</span>
         <div className="min-w-0 flex-1">
           <label className="text-xs text-fg-3" htmlFor="name">
             Display name
@@ -38,14 +39,14 @@ function ProfileInner() {
           </p>
           <ProgressBar value={lv.progress} className="mt-2 max-w-sm" label="Level progress" />
         </div>
-        <p className="w-full rounded-xl bg-surface-2 px-3 py-2 text-xs text-fg-3">
+        <p className="w-full rounded-md bg-surface-2 px-3 py-2 text-xs text-fg-3">
           You&apos;re learning as a guest. Progress is stored in this browser only.
         </p>
       </Card>
 
       <section aria-labelledby="ach">
         <h2 id="ach" className="mb-3 flex items-center gap-2 text-lg font-semibold">
-          <Trophy className="size-5 text-amber" /> Achievements
+          <Trophy className="size-5 text-warn" /> Achievements
           <span className="text-sm font-normal text-fg-3">
             {Object.keys(p.achievements).length}/{ACHIEVEMENTS.length}
           </span>
@@ -54,15 +55,15 @@ function ProfileInner() {
           {ACHIEVEMENTS.map((a) => {
             const at = p.achievements[a.id];
             return (
-              <li key={a.id} className={clsx("flex items-center gap-3 rounded-2xl border p-3", at ? "border-amber/30 bg-amber-soft/50" : "border-line opacity-60")}>
-                <span className={clsx("grid size-10 shrink-0 place-items-center rounded-xl", at ? "bg-amber text-[#3a2600]" : "bg-surface-2 text-fg-3")}>
+              <li key={a.id} className={clsx("flex items-center gap-3 rounded-lg border p-3", at ? "border-warn/30 bg-warn-soft/50" : "border-line opacity-60")}>
+                <span className={clsx("grid size-10 shrink-0 place-items-center rounded-md", at ? "bg-warn text-[var(--surface)]" : "bg-surface-2 text-fg-3")}>
                   <DynamicIcon name={a.icon} className="size-5" />
                 </span>
                 <div className="min-w-0">
                   <p className="text-sm font-medium">{a.title}</p>
                   <p className="text-xs text-fg-2">{a.description}</p>
                 </div>
-                {at && <span className="ml-auto shrink-0 text-[10px] text-fg-3">{new Date(at).toLocaleDateString()}</span>}
+                {at && <span className="ml-auto shrink-0 text-[11px] text-fg-3">{new Date(at).toLocaleDateString()}</span>}
               </li>
             );
           })}
@@ -74,8 +75,8 @@ function ProfileInner() {
           Preferences & accessibility
         </h2>
         <Card className="divide-y divide-line">
-          <Setting icon={<Palette className="size-4" />} title="Theme" desc="Dark is the default.">
-            <Segmented value={p.settings.theme} options={[["dark", "Dark"], ["light", "Light"]]} onChange={(v) => p.updateSettings({ theme: v as Settings["theme"] })} />
+          <Setting icon={<Palette className="size-4" />} title="Theme" desc="Paper (light) is the default, like git-scm.com.">
+            <Segmented value={p.settings.theme} options={[["light", "Paper"], ["dark", "Dark"]]} onChange={(v) => p.updateSettings({ theme: v as Settings["theme"] })} />
           </Setting>
           <Setting icon={<Accessibility className="size-4" />} title="Motion" desc="Reduce animations. “System” follows your OS setting.">
             <Segmented
@@ -124,7 +125,7 @@ function ProfileInner() {
         <Card className="flex flex-wrap items-center justify-between gap-3 p-5">
           <div>
             <p className="text-sm font-semibold">Reset progress</p>
-            <p className="text-xs text-fg-2">Erase XP, lessons and badges from this browser. Settings are kept.</p>
+            <p className="text-xs text-fg-2">Erase XP, lessons, badges and the saved playground from this browser. Settings are kept.</p>
           </div>
           {confirm ? (
             <div className="flex gap-2">
@@ -136,6 +137,7 @@ function ProfileInner() {
                 size="sm"
                 onClick={() => {
                   p.resetProgress();
+                  removeKey(PLAYGROUND_KEY);
                   setConfirm(false);
                 }}
               >
@@ -168,7 +170,7 @@ function Setting({ icon, title, desc, children }: { icon: React.ReactNode; title
 
 function Segmented({ value, options, onChange }: { value: string; options: Array<[string, string]>; onChange: (v: string) => void }) {
   return (
-    <div className="flex rounded-xl bg-surface-2 p-1" role="radiogroup">
+    <div className="flex rounded-md bg-surface-2 p-1" role="radiogroup">
       {options.map(([v, label]) => (
         <button
           key={v}

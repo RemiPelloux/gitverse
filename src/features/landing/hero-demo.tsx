@@ -39,7 +39,7 @@ export function HeroDemo() {
     setEvents([]);
   };
   return (
-    <div className="overflow-hidden rounded-3xl border border-line bg-surface/80 shadow-[0_30px_80px_-30px_rgba(139,92,246,0.45)] backdrop-blur">
+    <div className="overflow-hidden rounded-lg border border-line bg-surface">
       <div className="h-56 border-b border-line bg-surface-2/30 sm:h-64">
         <GitGraph world={world} events={events} eventKey={i} compact />
       </div>
@@ -48,7 +48,7 @@ export function HeroDemo() {
           {log.map((l, k) => (
             <div key={k + l.cmd} className={clsx(k < log.length - 1 && "opacity-50")}>
               <p className="truncate">
-                <span className="text-[#6ee7b7]">$</span> <span className="text-white">{l.cmd}</span>
+                <span className="text-[var(--t-green)]">$</span> <span className="text-white">{l.cmd}</span>
               </p>
               {l.out.map((o, j) => (
                 <p key={j} className="truncate text-[var(--t-muted)]">
@@ -61,17 +61,17 @@ export function HeroDemo() {
         </div>
         <div className="mt-3 flex items-center gap-3 border-t border-white/5 pt-3 font-sans">
           {i < SCRIPT.length ? (
-            <button onClick={step} className="flex min-w-0 items-center gap-2 rounded-xl bg-[#8b5cf6] px-3 py-2 text-left text-xs font-medium text-white hover:brightness-110">
+            <button onClick={step} className="flex min-w-0 items-center gap-2 rounded-md bg-[var(--accent)] px-3 py-2 text-left text-xs font-medium text-white hover:brightness-110">
               <Play className="size-3.5 shrink-0 fill-current" />
               <code className="truncate font-mono">{SCRIPT[i].cmd.split(" && ")[0]}</code>
             </button>
           ) : (
-            <button onClick={reset} className="flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs text-white hover:bg-white/15">
+            <button onClick={reset} className="flex items-center gap-2 rounded-md bg-white/10 px-3 py-2 text-xs text-white hover:bg-white/15">
               <RotateCcw className="size-3.5" /> Play again
             </button>
           )}
           <AnimatePresence mode="wait">
-            <motion.p key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-w-0 text-xs text-[#a3a9c9]">
+            <motion.p key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-w-0 text-xs text-[var(--t-muted)]">
               {i > 0 ? SCRIPT[i - 1].note : "5 commands. One complete Git story."}
             </motion.p>
           </AnimatePresence>

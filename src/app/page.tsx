@@ -1,116 +1,126 @@
 import Link from "next/link";
-import { Eye, Gamepad2, GitFork, MousePointerClick, ShieldCheck, Sparkles, SquareTerminal } from "lucide-react";
 import { AppNav } from "@/components/app-nav";
 import { LinkButton } from "@/components/ui/button";
 import { CHAPTERS, TIER_LABEL } from "@/features/curriculum";
 import { HeroDemo } from "@/features/landing/hero-demo";
 import { StartButton } from "@/features/landing/start-button";
 
+/** What Gitverse does, told as a commit history. */
+const LOG = [
+  { hash: "e3f1a09", head: true, msg: "Type real commands, see the result in the graph immediately" },
+  { hash: "9b2c4d1", msg: "Explain each idea with a small scene before asking for a command" },
+  { hash: "51ad7e8", msg: "Add an assisted terminal that explains every word you type" },
+  { hash: "c08e2f3", msg: "Check challenges by the state of your repository, not your typing" },
+  { hash: "7f9e011", msg: "Simulate GitHub locally — clearly labelled, nothing leaves your browser" },
+  { hash: "0d4b6aa", msg: "Initial commit: learn Git by using it" },
+];
+
+const STEPS = [
+  ["discover", "a short interactive scene explains one idea"],
+  ["watch", "step through a real command and what it changes"],
+  ["try", "run it yourself, with a suggestion if you want one"],
+  ["challenge", "reach a goal on your own; hints are free"],
+  ["celebrate", "XP, badges, and the next lesson unlocks"],
+];
+
 export default function Home() {
   return (
     <>
       <AppNav />
       <main className="pb-24 md:pb-0">
-        <section className="mx-auto grid max-w-6xl items-center gap-12 px-4 pt-14 pb-20 lg:grid-cols-[1.05fr_1fr] lg:pt-24">
+        <section className="mx-auto grid max-w-6xl items-center gap-12 px-4 pt-14 pb-16 lg:grid-cols-2 lg:pt-20">
           <div>
-            <p className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/60 px-3 py-1 text-xs text-fg-2">
-              <Sparkles className="size-3.5 text-violet-2" /> Free · No account needed · Made for total beginners
-            </p>
-            <h1 className="mt-6 text-[2.6rem] leading-[1.05] font-semibold tracking-tight text-balance sm:text-6xl">
-              Learn Git by <span className="bg-gradient-to-r from-violet-2 via-violet to-mint bg-clip-text text-transparent">playing</span> with it.
+            <p className="font-mono text-sm text-fg-3">$ git learn --from-scratch</p>
+            <h1 className="mt-4 text-[2.5rem] leading-[1.08] font-semibold tracking-tight text-balance sm:text-[3.4rem]">
+              Learn Git by <span className="text-accent-fg">using</span> it.
             </h1>
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-fg-2">
-              Type real Git commands and watch your project&apos;s history grow, branch and merge — live. Short, game-like lessons take you from
-              &ldquo;what is a repository?&rdquo; to collaborating on GitHub.
+              Type Git commands and watch your project&apos;s history grow, branch and merge. Short lessons take you from &ldquo;what is a repository?&rdquo; to
+              working with others on GitHub.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <StartButton />
               <LinkButton href="/playground" variant="secondary" size="lg">
-                Explore the playground
+                Open the playground
               </LinkButton>
             </div>
-            <p className="mt-4 text-xs text-fg-3">Your progress is saved in this browser. Everything runs in a safe simulation — nothing can break.</p>
+            <p className="mt-4 text-sm text-fg-3">No account needed. Progress stays in this browser. Nothing you type can break anything.</p>
           </div>
           <HeroDemo />
         </section>
 
-        <section className="border-y border-line/60 bg-surface/30">
-          <div className="mx-auto grid max-w-6xl gap-px px-4 py-14 sm:grid-cols-3 sm:gap-8">
-            {[
-              { icon: Eye, title: "See it, then do it", body: "Every idea starts as a little interactive scene before you ever touch a command." },
-              { icon: SquareTerminal, title: "A friendly terminal", body: "Assisted mode suggests commands and explains every word. Switch to Real mode when you're ready." },
-              { icon: GitFork, title: "History you can watch", body: "Commits pop into the graph, branches split, merges reconnect — exactly as Git really does it." },
-            ].map((f) => (
-              <div key={f.title} className="py-4">
-                <span className="grid size-10 place-items-center rounded-2xl bg-violet-soft text-violet-2">
-                  <f.icon className="size-5" />
-                </span>
-                <h2 className="mt-4 font-semibold">{f.title}</h2>
-                <p className="mt-1.5 text-sm leading-relaxed text-fg-2">{f.body}</p>
-              </div>
-            ))}
+        <section className="border-y border-line bg-surface">
+          <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 lg:grid-cols-[1fr_1.4fr]">
+            <div>
+              <h2 className="text-2xl font-semibold tracking-tight">Why it works</h2>
+              <p className="mt-2 text-fg-2">Git is easier once you can see what each command does. So everything you type is drawn as it happens.</p>
+            </div>
+            <ol className="font-mono text-[13px] leading-7" aria-label="Features">
+              {LOG.map((c, i) => (
+                <li key={c.hash} className="flex gap-3">
+                  <span className="relative flex w-3 shrink-0 justify-center" aria-hidden>
+                    <span className={i === LOG.length - 1 ? "absolute top-0 h-3.5 w-px bg-line-strong" : "absolute inset-y-0 w-px bg-line-strong"} />
+                    <span className="relative mt-[9px] size-2.5 rounded-full border-2 border-accent-mark bg-surface" />
+                  </span>
+                  <span className="shrink-0 text-warn">{c.hash}</span>
+                  <span className="min-w-0">
+                    {c.head && (
+                      <span className="mr-2 text-fg-3">
+                        (<span className="text-info">HEAD</span> -&gt; <span className="text-ok">main</span>)
+                      </span>
+                    )}
+                    <span className="text-fg">{c.msg}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
           </div>
         </section>
 
-        <section className="mx-auto max-w-6xl px-4 py-20">
-          <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr]">
-            <div>
-              <h2 className="text-3xl font-semibold tracking-tight">Every lesson is a tiny game.</h2>
-              <p className="mt-3 text-fg-2">About 5 minutes each. One idea at a time. Mistakes are part of the fun — you can always undo, retry, or ask for a hint.</p>
-              <ol className="mt-8 space-y-4">
-                {[
-                  ["Discover", "An animated scene explains the idea in plain words."],
-                  ["Watch", "Step through a real command and see what it changes."],
-                  ["Try", "Run it yourself — with a suggestion if you want one."],
-                  ["Challenge", "Reach a goal on your own. We check the result, not your typing."],
-                  ["Celebrate", "Earn XP, badges, and unlock the next lesson."],
-                ].map(([t, d], i) => (
-                  <li key={t} className="flex gap-4">
-                    <span className="grid size-8 shrink-0 place-items-center rounded-full border border-line bg-surface font-mono text-xs text-violet-2">{i + 1}</span>
-                    <div>
-                      <p className="font-medium">{t}</p>
-                      <p className="text-sm text-fg-2">{d}</p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </div>
-            <div className="rounded-3xl border border-line bg-surface/60 p-5">
-              <p className="flex items-center gap-2 text-sm font-medium">
-                <Gamepad2 className="size-4 text-violet-2" /> Your journey
-              </p>
-              <ul className="mt-4 space-y-2">
-                {CHAPTERS.map((c) => (
-                  <li key={c.id} className="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-surface-2">
-                    <span className="w-6 font-mono text-xs text-fg-3">{String(c.number).padStart(2, "0")}</span>
-                    <span className="flex-1 text-sm">{c.title}</span>
-                    <span className="text-[11px] text-fg-3">{c.lessons.length ? `${c.lessons.length} lesson${c.lessons.length > 1 ? "s" : ""}` : "coming soon"}</span>
-                    <span className="hidden rounded-full bg-surface-2 px-2 py-0.5 text-[10px] text-fg-2 sm:inline">{TIER_LABEL[c.tier]}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+        <section className="mx-auto grid max-w-6xl gap-12 px-4 py-16 lg:grid-cols-2">
+          <div>
+            <h2 className="text-2xl font-semibold tracking-tight">Every lesson, five steps</h2>
+            <p className="mt-2 text-fg-2">About five minutes each, one idea at a time. Mistakes are expected — you can undo, retry or ask for a hint.</p>
+            <dl className="mt-6 divide-y divide-line border-y border-line">
+              {STEPS.map(([k, v]) => (
+                <div key={k} className="grid grid-cols-[7.5rem_1fr] gap-3 py-3 text-sm">
+                  <dt className="font-mono text-accent-fg">{k}</dt>
+                  <dd className="text-fg-2">{v}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+          <div>
+            <h2 className="text-2xl font-semibold tracking-tight">The curriculum</h2>
+            <p className="mt-2 text-fg-2">Twelve chapters, from your first commit to rescuing a broken main branch.</p>
+            <ul className="mt-6 divide-y divide-line border-y border-line">
+              {CHAPTERS.map((c) => (
+                <li key={c.id} className="flex items-center gap-3 py-2.5 text-sm">
+                  <span className="w-6 font-mono text-xs text-fg-3">{String(c.number).padStart(2, "0")}</span>
+                  <span className="flex-1">{c.title}</span>
+                  <span className="text-xs text-fg-3">{c.lessons.length ? `${c.lessons.length} lesson${c.lessons.length > 1 ? "s" : ""}` : "coming soon"}</span>
+                  <span className="hidden w-24 text-right text-xs text-fg-3 sm:inline">{TIER_LABEL[c.tier]}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
 
-        <section className="mx-auto max-w-6xl px-4 pb-24">
-          <div className="grid gap-6 rounded-3xl border border-line bg-gradient-to-br from-violet-soft to-transparent p-8 sm:grid-cols-[1fr_auto] sm:items-center sm:p-12">
+        <section className="mx-auto max-w-6xl px-4 pb-20">
+          <div className="flex flex-col gap-6 border-t border-line pt-10 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Your first commit is 3 minutes away.</h2>
-              <p className="mt-2 flex items-start gap-2 text-sm text-fg-2">
-                <ShieldCheck className="mt-0.5 size-4 shrink-0 text-mint" />
-                Git and GitHub are different things — Gitverse teaches both, and clearly labels the simulated GitHub so you always know which is which.
+              <h2 className="text-xl font-semibold tracking-tight">Your first commit is three minutes away.</h2>
+              <p className="mt-1 max-w-xl text-sm text-fg-2">
+                Git and GitHub are different things. Gitverse teaches both, and the simulated GitHub is always labelled so you know which is which.
               </p>
             </div>
             <StartButton />
           </div>
-          <footer className="mt-12 flex flex-wrap items-center justify-between gap-4 text-xs text-fg-3">
-            <span className="flex items-center gap-1.5">
-              <MousePointerClick className="size-3.5" /> Gitverse — learn Git by playing with it.
-            </span>
+          <footer className="mt-14 flex flex-wrap items-center justify-between gap-4 text-xs text-fg-3">
+            <span>Gitverse — learn Git by using it.</span>
             <span className="flex gap-4">
               <Link href="/commands" className="hover:text-fg-2">
-                Command encyclopedia
+                Command reference
               </Link>
               <Link href="/profile" className="hover:text-fg-2">
                 Settings & accessibility
@@ -122,4 +132,3 @@ export default function Home() {
     </>
   );
 }
-

@@ -26,7 +26,7 @@ export function AppNav() {
   const days = hydrated ? streak(activity) : 0;
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-line/70 bg-bg/75 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-line/70 bg-bg">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4">
           <Link href="/" aria-label="Gitverse home">
             <Logo />
@@ -49,8 +49,8 @@ export function AppNav() {
           <div className="ml-auto flex items-center gap-2">
             {hydrated && xp > 0 && (
               <Link href="/profile" className="flex items-center gap-2 rounded-full border border-line bg-surface px-2.5 py-1 text-xs hover:border-line-strong">
-                <span className="grid size-5 place-items-center rounded-full bg-violet text-[10px] font-bold text-white">{lv.level}</span>
-                <span className="font-semibold text-amber">{xp} XP</span>
+                <span className="grid size-5 place-items-center rounded-full bg-accent text-[11px] font-bold text-white">{lv.level}</span>
+                <span className="font-semibold text-warn">{xp} XP</span>
                 {settings.showStreak && days > 1 && <span className="text-fg-2">· {days}-day streak</span>}
               </Link>
             )}
@@ -65,11 +65,11 @@ export function AppNav() {
         </div>
       </header>
       {/* mobile bottom navigation */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden" aria-label="Main">
+      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:hidden" aria-label="Main">
         {LINKS.map((l) => {
           const active = pathname.startsWith(l.href);
           return (
-            <Link key={l.href} href={l.href} aria-current={active ? "page" : undefined} className={clsx("flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium", active ? "text-violet-2" : "text-fg-3")}>
+            <Link key={l.href} href={l.href} aria-current={active ? "page" : undefined} className={clsx("flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium", active ? "text-accent-fg" : "text-fg-3")}>
               <l.icon className="size-5" />
               {l.label}
             </Link>

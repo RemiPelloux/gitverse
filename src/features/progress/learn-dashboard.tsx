@@ -4,7 +4,7 @@ import { clsx } from "clsx";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowRight, Check, Flame, Lock, Play, Sparkles, Swords, Target, Trophy } from "lucide-react";
+import { ArrowRight, Check, Flame, GitCommitHorizontal, Lock, Play, Swords, Target, Trophy } from "lucide-react";
 import { ALL_LESSONS, CHAPTERS, isUnlocked, TIER_LABEL, type Chapter, type Lesson } from "@/features/curriculum";
 import { COMMAND_DOCS } from "@/features/docs/commands";
 import { Button, LinkButton } from "@/components/ui/button";
@@ -32,17 +32,16 @@ function Dashboard() {
   return (
     <div className="mx-auto max-w-6xl px-4 pt-8 pb-28 md:pb-16">
       {!p.onboarded && <Onboarding />}
-      <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
-        <div className="space-y-4">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="min-w-0 space-y-4">
           <Card className="relative overflow-hidden p-6 sm:p-8">
-            <div className="pointer-events-none absolute -top-24 -right-24 size-72 rounded-full bg-violet/20 blur-3xl" aria-hidden />
-            <p className="text-sm text-fg-2">{p.name ? `Welcome back, ${p.name}` : doneCount ? "Welcome back" : "Welcome to Gitverse"} 👋</p>
+            <p className="text-sm text-fg-2">{p.name ? `Welcome back, ${p.name}` : doneCount ? "Welcome back" : "Welcome to Gitverse"}</p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
               {next ? (doneCount ? "Ready for your next lesson?" : "Let's make your first commit.") : "You've finished every lesson available!"}
             </h1>
             {next ? (
               <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center">
-                <div className="min-w-0 flex-1 rounded-2xl border border-line bg-surface-2/60 p-4">
+                <div className="min-w-0 flex-1 rounded-lg border border-line bg-surface-2/60 p-4">
                   <p className="text-xs text-fg-3">
                     Chapter {CHAPTERS.find((c) => c.id === next.chapterId)!.number} · {p.saves[next.id] ? "In progress" : "Up next"}
                   </p>
@@ -75,18 +74,18 @@ function Dashboard() {
           </section>
         </div>
 
-        <aside className="space-y-4">
+        <aside className="min-w-0 space-y-4">
           <Card className="p-5">
             <div className="flex items-center gap-3">
-              <span className="grid size-12 place-items-center rounded-2xl bg-gradient-to-br from-violet to-violet-2 text-lg font-bold text-white shadow-[0_8px_24px_-8px_var(--violet)]">
+              <span className="grid size-12 place-items-center rounded-lg bg-accent text-lg font-bold text-white">
                 {lv.level}
               </span>
               <div>
                 <p className="text-xs text-fg-3">Level {lv.level}</p>
                 <p className="font-semibold">{LEVEL_TITLES[lv.level - 1]}</p>
               </div>
-              <span className="ml-auto flex items-center gap-1 text-sm font-semibold text-amber">
-                <Sparkles className="size-4" />
+              <span className="ml-auto flex items-center gap-1 text-sm font-semibold text-warn">
+                <GitCommitHorizontal className="size-4" />
                 {p.xp}
               </span>
             </div>
@@ -95,13 +94,13 @@ function Dashboard() {
             <div className="mt-4 grid grid-cols-3 gap-2 text-center">
               <Stat label="Lessons" value={`${doneCount}/${ALL_LESSONS.length}`} />
               <Stat label="Commands" value={String(Object.keys(p.commands).length)} />
-              <Stat label={p.settings.showStreak ? "Day streak" : "Badges"} value={p.settings.showStreak ? String(days) : String(Object.keys(p.achievements).length)} icon={p.settings.showStreak && days > 0 ? <Flame className="size-3.5 text-amber" /> : undefined} />
+              <Stat label={p.settings.showStreak ? "Day streak" : "Badges"} value={p.settings.showStreak ? String(days) : String(Object.keys(p.achievements).length)} icon={p.settings.showStreak && days > 0 ? <Flame className="size-3.5 text-warn" /> : undefined} />
             </div>
           </Card>
 
           <Card className="p-5">
             <h2 className="flex items-center gap-2 text-sm font-semibold">
-              <Target className="size-4 text-mint" /> Daily quests
+              <Target className="size-4 text-ok" /> Daily quests
             </h2>
             <ul className="mt-3 space-y-3">
               {quests.map((q) => {
@@ -111,9 +110,9 @@ function Dashboard() {
                   <li key={q.id}>
                     <div className="flex items-center justify-between gap-2 text-sm">
                       <span className={clsx(done ? "text-fg-3 line-through" : "text-fg")}>{q.title}</span>
-                      <span className="shrink-0 text-xs text-fg-3">{done ? <Check className="size-4 text-mint" /> : `${prog}/${q.target}`}</span>
+                      <span className="shrink-0 text-xs text-fg-3">{done ? <Check className="size-4 text-ok" /> : `${prog}/${q.target}`}</span>
                     </div>
-                    <ProgressBar value={prog / q.target} tone="mint" className="mt-1.5 h-1.5" label={q.title} />
+                    <ProgressBar value={prog / q.target} tone="ok" className="mt-1.5 h-1.5" label={q.title} />
                   </li>
                 );
               })}
@@ -124,7 +123,7 @@ function Dashboard() {
           <Card className="p-5">
             <div className="flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-sm font-semibold">
-                <Trophy className="size-4 text-amber" /> Badges
+                <Trophy className="size-4 text-warn" /> Badges
               </h2>
               <Link href="/profile" className="text-xs text-fg-3 hover:text-fg-2">
                 See all
@@ -134,7 +133,7 @@ function Dashboard() {
               {ACHIEVEMENTS.slice(0, 10).map((a) => {
                 const got = !!p.achievements[a.id];
                 return (
-                  <li key={a.id} title={`${a.title} — ${a.description}`} className={clsx("grid aspect-square place-items-center rounded-xl", got ? "bg-amber-soft text-amber" : "bg-surface-2 text-fg-3 opacity-50")}>
+                  <li key={a.id} title={`${a.title} — ${a.description}`} className={clsx("grid aspect-square place-items-center rounded-md", got ? "bg-warn-soft text-warn" : "bg-surface-2 text-fg-3 opacity-50")}>
                     <DynamicIcon name={a.icon} className="size-4" />
                     <span className="sr-only">
                       {a.title}: {got ? "earned" : "locked"}
@@ -155,12 +154,12 @@ function Dashboard() {
 
 function Stat({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) {
   return (
-    <div className="rounded-xl bg-surface-2 px-2 py-2">
+    <div className="rounded-md bg-surface-2 px-2 py-2">
       <p className="flex items-center justify-center gap-1 text-sm font-semibold">
         {icon}
         {value}
       </p>
-      <p className="text-[10px] text-fg-3">{label}</p>
+      <p className="text-[11px] text-fg-3">{label}</p>
     </div>
   );
 }
@@ -173,14 +172,15 @@ function ChapterBlock({ chapter }: { chapter: Chapter }) {
   const total = chapter.lessons.length;
   const mastered = total > 0 && done === total;
   const available = chapter.lessons.some((l) => isUnlocked(l.id, completed, experience));
+  const nextId = ALL_LESSONS.find((l) => !completed[l.id] && isUnlocked(l.id, completed, experience))?.id;
   const state = !total ? "soon" : mastered ? "mastered" : done > 0 ? "progress" : available ? "available" : "locked";
   return (
     <Card className={clsx("p-5", state === "locked" || state === "soon" ? "opacity-70" : "")}>
       <div className="flex flex-wrap items-center gap-3">
         <span
           className={clsx(
-            "grid size-10 place-items-center rounded-2xl font-mono text-sm font-semibold",
-            state === "mastered" ? "bg-mint text-[#04261a]" : state === "progress" || state === "available" ? "bg-violet-soft text-violet-2" : "bg-surface-2 text-fg-3",
+            "grid size-10 place-items-center rounded-lg font-mono text-sm font-semibold",
+            state === "mastered" ? "bg-ok text-[var(--on-ok)]" : state === "progress" || state === "available" ? "bg-accent-soft text-accent-fg" : "bg-surface-2 text-fg-3",
           )}
         >
           {state === "mastered" ? <Check className="size-5" strokeWidth={3} /> : state === "locked" ? <Lock className="size-4" /> : chapter.number}
@@ -188,8 +188,8 @@ function ChapterBlock({ chapter }: { chapter: Chapter }) {
         <div className="min-w-0 flex-1">
           <p className="flex flex-wrap items-center gap-2 font-semibold">
             {chapter.title}
-            <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-medium text-fg-2">{TIER_LABEL[chapter.tier]}</span>
-            {state === "mastered" && <span className="rounded-full bg-mint-soft px-2 py-0.5 text-[10px] font-medium text-mint">Mastered</span>}
+            <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-fg-2">{TIER_LABEL[chapter.tier]}</span>
+            {state === "mastered" && <span className="rounded-full bg-ok-soft px-2 py-0.5 text-[11px] font-medium text-ok">Mastered</span>}
           </p>
           <p className="text-sm text-fg-2">{chapter.description}</p>
         </div>
@@ -197,15 +197,15 @@ function ChapterBlock({ chapter }: { chapter: Chapter }) {
       </div>
       <ol className="relative mt-5 flex flex-wrap gap-3">
         {chapter.lessons.map((l) => (
-          <LessonNode key={l.id} lesson={l} done={!!completed[l.id]} inProgress={!!saves[l.id]} unlocked={isUnlocked(l.id, completed, experience)} />
+          <LessonNode key={l.id} lesson={l} done={!!completed[l.id]} inProgress={!!saves[l.id]} unlocked={isUnlocked(l.id, completed, experience)} next={l.id === nextId} />
         ))}
         {chapter.upcoming.map((t) => (
-          <li key={t} className="flex w-full items-center gap-3 rounded-2xl border border-dashed border-line px-3 py-2.5 text-sm text-fg-3 sm:w-[calc(50%-0.375rem)]">
+          <li key={t} className="flex w-full items-center gap-3 rounded-lg border border-dashed border-line px-3 py-2.5 text-sm text-fg-3 sm:w-[calc(50%-0.375rem)]">
             <span className="grid size-8 place-items-center rounded-full bg-surface-2">
               <Lock className="size-3.5" />
             </span>
             <span className="min-w-0 truncate">{t}</span>
-            <span className="ml-auto shrink-0 text-[10px]">coming soon</span>
+            <span className="ml-auto shrink-0 text-[11px]">coming soon</span>
           </li>
         ))}
       </ol>
@@ -213,17 +213,17 @@ function ChapterBlock({ chapter }: { chapter: Chapter }) {
   );
 }
 
-function LessonNode({ lesson, done, inProgress, unlocked }: { lesson: Lesson; done: boolean; inProgress: boolean; unlocked: boolean }) {
+function LessonNode({ lesson, done, inProgress, unlocked, next }: { lesson: Lesson; done: boolean; inProgress: boolean; unlocked: boolean; next: boolean }) {
   const content = (
     <>
       <span
         className={clsx(
           "relative grid size-10 shrink-0 place-items-center rounded-full border-2 transition-transform group-hover:scale-105",
-          done ? "border-mint bg-mint text-[#04261a]" : unlocked ? "border-violet bg-violet-soft text-violet-2" : "border-line bg-surface-2 text-fg-3",
+          done ? "border-ok bg-ok text-[var(--on-ok)]" : unlocked ? "border-accent bg-accent-soft text-accent-fg" : "border-line bg-surface-2 text-fg-3",
         )}
       >
         {done ? <Check className="size-5" strokeWidth={3} /> : !unlocked ? <Lock className="size-4" /> : lesson.boss ? <Swords className="size-4" /> : <Play className="size-4 fill-current" />}
-        {unlocked && !done && <span className="absolute inset-0 animate-ping rounded-full border border-violet/50 [animation-duration:2.5s]" aria-hidden />}
+        {next && <span className="absolute inset-0 animate-ping rounded-full border border-accent/50 [animation-duration:2.5s]" aria-hidden />}
       </span>
       <span className="min-w-0">
         <span className="block truncate text-sm font-medium">{lesson.title}</span>
@@ -233,11 +233,11 @@ function LessonNode({ lesson, done, inProgress, unlocked }: { lesson: Lesson; do
       </span>
     </>
   );
-  const cls = "group flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 sm:w-[calc(50%-0.375rem)]";
+  const cls = "group flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 sm:w-[calc(50%-0.375rem)]";
   return (
     <li className="contents">
       {unlocked ? (
-        <Link href={`/learn/${lesson.id}`} className={clsx(cls, done ? "border-mint/20 hover:border-mint/40" : "border-violet/30 bg-violet-soft/30 hover:border-violet/60")}>
+        <Link href={`/learn/${lesson.id}`} className={clsx(cls, done ? "border-ok/20 hover:border-ok/40" : "border-accent/30 bg-accent-soft/30 hover:border-accent/60")}>
           {content}
         </Link>
       ) : (
@@ -290,7 +290,7 @@ function Activity({ activity }: { activity: Record<string, { xp: number }> }) {
           <span
             key={d.key}
             title={`${d.label}: ${d.xp} XP`}
-            className={clsx("aspect-square rounded-md", d.xp === 0 ? "bg-surface-2" : d.xp < 50 ? "bg-violet/30" : d.xp < 150 ? "bg-violet/60" : "bg-violet")}
+            className={clsx("aspect-square rounded-md", d.xp === 0 ? "bg-surface-2" : d.xp < 50 ? "bg-accent/30" : d.xp < 150 ? "bg-accent/60" : "bg-accent")}
           />
         ))}
       </div>
@@ -312,8 +312,8 @@ function Onboarding() {
   ];
   return (
     <AnimatePresence>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4 backdrop-blur-sm" role="dialog" aria-modal aria-labelledby="onb-title">
-        <motion.div initial={{ y: 16, scale: 0.97 }} animate={{ y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 260, damping: 24 }} className="w-full max-w-md rounded-3xl border border-line bg-elevated p-6 shadow-2xl">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" role="dialog" aria-modal aria-labelledby="onb-title">
+        <motion.div initial={{ y: 16, scale: 0.97 }} animate={{ y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 260, damping: 24 }} className="w-full max-w-md rounded-lg border border-line bg-elevated p-6 shadow-2xl">
           <h2 id="onb-title" className="text-xl font-semibold">
             Welcome! Quick setup
           </h2>
@@ -326,14 +326,14 @@ function Onboarding() {
             value={name}
             onChange={(e) => setLocal(e.target.value.slice(0, 30))}
             placeholder="Your first name"
-            className="mt-1.5 w-full rounded-xl border border-line bg-surface-2 px-3 py-2 text-sm outline-none focus:border-violet"
+            className="mt-1.5 w-full rounded-md border border-line bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
           />
           <fieldset className="mt-5">
             <legend className="text-sm font-medium">Have you used Git before?</legend>
             <div className="mt-2 space-y-2">
               {choices.map((c) => (
-                <label key={c.id} className={clsx("flex cursor-pointer gap-3 rounded-xl border p-3", exp === c.id ? "border-violet bg-violet-soft" : "border-line hover:border-line-strong")}>
-                  <input type="radio" name="exp" className="mt-1 accent-[var(--violet)]" checked={exp === c.id} onChange={() => setExp(c.id)} />
+                <label key={c.id} className={clsx("flex cursor-pointer gap-3 rounded-md border p-3", exp === c.id ? "border-accent bg-accent-soft" : "border-line hover:border-line-strong")}>
+                  <input type="radio" name="exp" className="mt-1 accent-[var(--accent)]" checked={exp === c.id} onChange={() => setExp(c.id)} />
                   <span>
                     <span className="block text-sm font-medium">{c.title}</span>
                     <span className="block text-xs text-fg-2">{c.body}</span>

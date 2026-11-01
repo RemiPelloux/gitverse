@@ -2,13 +2,14 @@
 
 import { clsx } from "clsx";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { ArrowLeft, Check, ChevronDown, History, Link2, Maximize, Minimize, Redo2, RotateCcw, Undo2 } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, HardDrive, History, Link2, Maximize, Minimize, Redo2, RotateCcw, Undo2 } from "lucide-react";
 import { deserializeWorld, serializeWorld } from "@/engine";
 import { useProgress } from "@/features/progress/store";
 import { Logo, useHydrated } from "@/components/ui/misc";
 import { GitGraph } from "./git-graph";
+import { autosavePlayground, loadPlayground } from "./persistence";
 import { buildSandbox, SANDBOXES } from "./sandboxes";
 import { createLabStore, LabProvider, useLab } from "./store";
 import { Workspace } from "./workspace";
@@ -29,13 +30,29 @@ function PlaygroundRuntime() {
   const recordCommand = useProgress((s) => s.recordCommand);
   const settings = useProgress((s) => s.settings);
   const updateSettings = useProgress((s) => s.updateSettings);
-  const [sandboxId, setSandboxId] = useState("website");
+  // A shared link wins; otherwise resume the playground saved in this browser.
+  const [boot] = useState(() => {
+    const shared = initialFromHash();
+    if (shared) return { world: shared, sandboxId: "website", terminal: undefined, resumed: false };
+    const saved = loadPlayground();
+    if (saved) return { world: saved.world, sandboxId: saved.sandboxId, terminal: saved, resumed: true };
+    return { world: buildSandbox("website"), sandboxId: "website", terminal: undefined, resumed: false };
+  });
+  const [sandboxId, setSandboxId] = useState(boot.sandboxId);
+  const sandboxRef = useRef(boot.sandboxId);
   const [store] = useState(() =>
-    createLabStore(initialFromHash() ?? buildSandbox("website"), (r) => {
-      if (r.command) recordCommand(r.command, r.ok, r.events, "playground");
-    }),
+    createLabStore(
+      boot.world,
+      (r) => {
+        if (r.command) recordCommand(r.command, r.ok, r.events, "playground");
+      },
+      boot.terminal,
+    ),
   );
   const [full, setFull] = useState(false);
+  const [saveState, setSaveState] = useState<"idle" | "saved" | "failed">(boot.resumed ? "saved" : "idle");
+
+  useEffect(() => autosavePlayground(store, () => sandboxRef.current, (ok) => setSaveState(ok ? "saved" : "failed")), [store]);
 
   return (
     <LabProvider store={store}>
@@ -44,11 +61,14 @@ function PlaygroundRuntime() {
           sandboxId={sandboxId}
           onSandbox={(id) => {
             setSandboxId(id);
+            sandboxRef.current = id;
             store.getState().reset(buildSandbox(id), "Sandbox start");
             history.replaceState(null, "", window.location.pathname);
           }}
           full={full}
           onFull={() => setFull((f) => !f)}
+          saveState={saveState}
+          resumed={boot.resumed}
         />
         <div className="min-h-0 flex-1">
           {full ? (
@@ -78,15 +98,29 @@ function FullGraph() {
   return (
     <div className="relative h-full">
       <GitGraph world={world} events={events} eventKey={eventKey} ghosts={ghosts} selected={selected} onSelect={select} showRemote={showRemote} />
-      <label className="absolute top-3 left-3 flex items-center gap-2 rounded-lg border border-line bg-surface/90 px-2.5 py-1.5 text-xs backdrop-blur">
-        <input type="checkbox" checked={showRemote} onChange={(e) => setShowRemote(e.target.checked)} className="accent-[var(--violet)]" />
+      <label className="absolute top-3 left-3 flex items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs">
+        <input type="checkbox" checked={showRemote} onChange={(e) => setShowRemote(e.target.checked)} className="accent-[var(--accent)]" />
         Show remote branches
       </label>
     </div>
   );
 }
 
-function Toolbar({ sandboxId, onSandbox, full, onFull }: { sandboxId: string; onSandbox: (id: string) => void; full: boolean; onFull: () => void }) {
+function Toolbar({
+  sandboxId,
+  onSandbox,
+  full,
+  onFull,
+  saveState,
+  resumed,
+}: {
+  sandboxId: string;
+  onSandbox: (id: string) => void;
+  full: boolean;
+  onFull: () => void;
+  saveState: "idle" | "saved" | "failed";
+  resumed: boolean;
+}) {
   const api = useLab((s) => s);
   const history = api.history;
   const cursor = api.cursor;
@@ -119,7 +153,7 @@ function Toolbar({ sandboxId, onSandbox, full, onFull }: { sandboxId: string; on
   };
 
   return (
-    <div className="shrink-0 border-b border-line bg-bg/80 backdrop-blur">
+    <div className="shrink-0 border-b border-line bg-bg">
       <div className="flex h-14 items-center gap-2 px-3">
         <Link href="/learn" className="rounded-lg p-1.5 text-fg-2 hover:bg-surface-2 hover:text-fg" aria-label="Back to learning path">
           <ArrowLeft className="size-4" />
@@ -128,12 +162,12 @@ function Toolbar({ sandboxId, onSandbox, full, onFull }: { sandboxId: string; on
           <Logo className="text-sm" />
         </Link>
         <span className="hidden text-fg-3 sm:inline">/</span>
-        <span className="text-sm font-semibold">Playground</span>
-        <div className="relative ml-2">
+        <span className="hidden text-sm font-semibold sm:inline">Playground</span>
+        <div className="relative min-w-0 shrink sm:ml-2">
           <select
             value={sandboxId}
             onChange={(e) => onSandbox(e.target.value)}
-            className="h-8 appearance-none rounded-lg border border-line bg-surface-2 pr-7 pl-2.5 text-xs outline-none hover:border-line-strong"
+            className="h-8 w-full max-w-44 appearance-none truncate rounded-lg border border-line bg-surface-2 pr-7 pl-2.5 text-xs outline-none hover:border-line-strong pointer-coarse:h-11"
             aria-label="Choose a starting repository"
           >
             {SANDBOXES.map((s) => (
@@ -144,7 +178,17 @@ function Toolbar({ sandboxId, onSandbox, full, onFull }: { sandboxId: string; on
           </select>
           <ChevronDown className="pointer-events-none absolute top-2 right-2 size-3.5 text-fg-3" />
         </div>
-        <div className="ml-auto flex items-center gap-1">
+        {saveState !== "idle" && (
+          <span
+            className={clsx("hidden items-center gap-1.5 text-xs md:flex", saveState === "failed" ? "text-bad" : "text-fg-3")}
+            title={saveState === "failed" ? "This browser blocked local storage (private mode or storage full)." : "Your repository and terminal are saved in this browser."}
+            role="status"
+          >
+            <HardDrive className="size-3.5" />
+            {saveState === "failed" ? "Not saved — storage unavailable" : resumed ? "Restored · saved locally" : "Saved locally"}
+          </span>
+        )}
+        <div className="scrollbar-thin ml-auto flex shrink-0 items-center gap-0.5 overflow-x-auto sm:gap-1">
           <ToolBtn label="Undo (time travel back) — Ctrl+Alt+Z" onClick={() => api.travel(cursor - 1)} disabled={cursor === 0}>
             <Undo2 className="size-4" />
           </ToolBtn>
@@ -158,7 +202,7 @@ function Toolbar({ sandboxId, onSandbox, full, onFull }: { sandboxId: string; on
             <RotateCcw className="size-4" />
           </ToolBtn>
           <ToolBtn label={copied ? "Link copied!" : "Copy a shareable link to this exact repository"} onClick={share}>
-            {copied ? <Check className="size-4 text-mint" /> : <Link2 className="size-4" />}
+            {copied ? <Check className="size-4 text-ok" /> : <Link2 className="size-4" />}
           </ToolBtn>
           <ToolBtn label={full ? "Exit full-screen graph" : "Full-screen graph"} onClick={onFull} active={full}>
             {full ? <Minimize className="size-4" /> : <Maximize className="size-4" />}
@@ -174,11 +218,11 @@ function Toolbar({ sandboxId, onSandbox, full, onFull }: { sandboxId: string; on
             max={history.length - 1}
             value={cursor}
             onChange={(e) => api.travel(Number(e.target.value))}
-            className="flex-1 accent-[var(--violet)]"
+            className="flex-1 accent-[var(--accent)]"
             aria-label="Simulation history"
             aria-valuetext={history[cursor]?.label}
           />
-          <span className="w-48 shrink-0 truncate font-mono text-xs text-fg-2" title={history[cursor]?.label}>
+          <span className="w-28 shrink-0 truncate font-mono text-xs text-fg-2 sm:w-48" title={history[cursor]?.label}>
             {cursor}/{history.length - 1} · {history[cursor]?.label}
           </span>
           <span className="hidden text-[11px] text-fg-3 lg:inline">Simulator history — real Git has no universal undo.</span>
@@ -195,7 +239,7 @@ function ToolBtn({ label, onClick, children, disabled, active }: { label: string
       disabled={disabled}
       aria-label={label}
       title={label}
-      className={clsx("grid size-8 place-items-center rounded-lg transition-colors disabled:opacity-30", active ? "bg-violet-soft text-violet-2" : "text-fg-2 hover:bg-surface-2 hover:text-fg")}
+      className={clsx("grid size-8 place-items-center rounded-lg transition-colors disabled:opacity-30 pointer-coarse:size-11", active ? "bg-accent-soft text-accent-fg" : "text-fg-2 hover:bg-surface-2 hover:text-fg")}
     >
       {children}
     </button>

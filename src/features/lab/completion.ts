@@ -117,12 +117,12 @@ export function highlight(input: string): Array<{ text: string; cls: string }> {
     }
     let cls = "text-[var(--t-text)]";
     if (t === "&&" || t === ">" || t === ">>") {
-      cls = "text-[#7c83a8]";
+      cls = "text-[var(--t-muted)]";
       idx = -1;
-    } else if (idx === 0) cls = t === "git" ? "text-[#c4b5fd] font-semibold" : "text-[#93c5fd]";
-    else if (idx === 1 && out.some((o) => o.text === "git")) cls = "text-[#6ee7b7] font-medium";
-    else if (t.startsWith("-")) cls = "text-[#fcd34d]";
-    else if (/^["']/.test(t)) cls = "text-[#f9a8d4]";
+    } else if (idx === 0) cls = t === "git" ? "text-[var(--t-orange)] font-semibold" : "text-[var(--t-blue)]";
+    else if (idx === 1 && out.some((o) => o.text === "git")) cls = "text-[var(--t-green)] font-medium";
+    else if (t.startsWith("-")) cls = "text-[var(--t-yellow)]";
+    else if (/^["']/.test(t)) cls = "text-[var(--t-magenta)]";
     out.push({ text: t, cls });
     idx++;
   }

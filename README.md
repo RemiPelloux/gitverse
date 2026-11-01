@@ -41,7 +41,9 @@ Every view (graph, terminal output, files, stages, lesson objectives) is derived
 
 ## Not built yet (deliberate scope for this first slice)
 
-- **Backend:** no PostgreSQL/Drizzle, no GitHub OAuth. Everyone is a guest, and progress lives in `localStorage` (store shape in `features/progress/store.ts`).
+- **Backend:** no PostgreSQL/Drizzle, no GitHub OAuth. Everyone is a guest; everything is saved in `localStorage`:
+  - `gitverse-progress`: XP, lessons, badges, quests, settings, and each unfinished lesson (repository, step, terminal transcript, command history). See `features/progress/store.ts`.
+  - `gitverse-playground`: the Playground repository, chosen starter repo, terminal transcript and command history. See `features/lab/persistence.ts`.
 - **Libraries swapped for lighter custom code:** the terminal is custom, not xterm.js, for assisted mode and phone support. The editor is a textarea-based editor with conflict tools, not Monaco.
 - **Curriculum:** chapters 5 (Rebase), 8 (Pull Requests), 9–12 appear on the path as "coming soon". The engine already supports rebase, cherry-pick, stash and tags. Interactive rebase, bisect, worktrees and submodules return an honest "not available in the simulator yet" error.
 - **Not started:** pull request simulator UI, AI tutor, command palette.

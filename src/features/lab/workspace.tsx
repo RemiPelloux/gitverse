@@ -141,7 +141,7 @@ export function Workspace({
             >
               {t.icon}
               {t.label}
-              {activeSide === t.id && <motion.span layoutId="side-tab" className="absolute inset-x-1 -bottom-px h-0.5 rounded-full bg-violet" />}
+              {activeSide === t.id && <motion.span layoutId="side-tab" className="absolute inset-x-1 -bottom-px h-0.5 rounded-full bg-accent" />}
             </button>
           ))}
       </div>
@@ -159,8 +159,8 @@ export function Workspace({
       onClick={() => setShowStages((s) => !s)}
       aria-pressed={showStages}
       className={clsx(
-        "absolute top-3 left-3 z-[2] flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[11px] font-medium backdrop-blur transition-colors",
-        showStages ? "border-violet/40 bg-violet-soft text-violet-2" : "border-line bg-surface/80 text-fg-2 hover:text-fg",
+        "absolute top-3 left-3 z-[2] flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[11px] font-medium transition-colors",
+        showStages ? "border-accent/40 bg-accent-soft text-accent-fg" : "border-line bg-surface text-fg-2 hover:text-fg",
       )}
     >
       <Layers className="size-3.5" /> {showStages ? "Hide" : "Show"} the 4 stages
@@ -198,10 +198,10 @@ export function Workspace({
   if (isDesktop) {
     return (
       <div className="flex h-full min-h-0">
-        {guide && <aside className="scrollbar-thin w-[min(380px,30vw)] shrink-0 overflow-y-auto border-r border-line bg-surface/40">{guide}</aside>}
+        {guide && <aside className="scrollbar-thin w-[min(380px,30vw)] shrink-0 overflow-y-auto border-r border-line bg-surface">{guide}</aside>}
         <main className="min-w-0 flex-1">{center}</main>
         <ResizeHandle orientation="vertical" onDrag={(d) => setSideW((w) => Math.min(560, Math.max(260, w + d)))} />
-        <aside style={{ width: sideW }} className="shrink-0 border-l border-line bg-surface/40">
+        <aside style={{ width: sideW }} className="shrink-0 border-l border-line bg-surface">
           {sidePanel}
         </aside>
       </div>
@@ -211,7 +211,7 @@ export function Workspace({
     return (
       <div className="flex h-full min-h-0">
         <main className="min-w-0 flex-1">{center}</main>
-        <aside className="w-[340px] shrink-0 border-l border-line bg-surface/40">{sidePanel}</aside>
+        <aside className="w-[340px] shrink-0 border-l border-line bg-surface">{sidePanel}</aside>
       </div>
     );
   }
@@ -250,7 +250,7 @@ export function Workspace({
             key={t.id}
             onClick={() => setMobileTab(t.id)}
             aria-current={mobileTab === t.id}
-            className={clsx("flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium", mobileTab === t.id ? "text-violet-2" : "text-fg-3")}
+            className={clsx("flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium", mobileTab === t.id ? "text-accent-fg" : "text-fg-3")}
           >
             <t.icon className="size-5" />
             {t.label}
@@ -286,7 +286,7 @@ function ResizeHandle({ orientation, onDrag }: { orientation: "horizontal" | "ve
       }}
       onPointerUp={() => (last.current = null)}
       className={clsx(
-        "group relative z-[3] shrink-0 bg-line transition-colors hover:bg-violet focus-visible:bg-violet",
+        "group relative z-[3] shrink-0 bg-line transition-colors hover:bg-accent focus-visible:bg-accent",
         horizontal ? "h-px cursor-row-resize" : "w-px cursor-col-resize",
       )}
     >

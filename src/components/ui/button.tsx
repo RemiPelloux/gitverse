@@ -2,19 +2,19 @@ import { clsx } from "clsx";
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 
-type Variant = "primary" | "secondary" | "ghost" | "mint" | "danger";
+type Variant = "primary" | "secondary" | "ghost" | "ok" | "danger";
 type Size = "sm" | "md" | "lg";
 
 const base =
-  "inline-flex items-center justify-center gap-2 font-medium rounded-xl transition-[background,color,box-shadow,transform] duration-150 active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none select-none whitespace-nowrap";
+  "inline-flex items-center justify-center gap-2 font-medium rounded-md transition-colors duration-150 active:translate-y-px disabled:opacity-40 disabled:pointer-events-none select-none whitespace-nowrap";
 
 const variants: Record<Variant, string> = {
   primary:
-    "bg-violet text-white shadow-[0_8px_24px_-8px_var(--violet)] hover:brightness-110 hover:shadow-[0_10px_30px_-8px_var(--violet)]",
+    "bg-accent text-white hover:bg-[#b0361a]",
   secondary: "bg-surface-2 text-fg border border-line hover:border-line-strong hover:bg-elevated",
   ghost: "text-fg-2 hover:text-fg hover:bg-surface-2",
-  mint: "bg-mint text-[#04261a] shadow-[0_8px_24px_-10px_var(--mint)] hover:brightness-110",
-  danger: "bg-coral-soft text-coral hover:bg-coral hover:text-white",
+  ok: "bg-ok text-[var(--on-ok)] hover:brightness-110",
+  danger: "bg-bad-soft text-bad hover:bg-bad hover:text-white",
 };
 
 const sizes: Record<Size, string> = {
@@ -58,7 +58,7 @@ export function IconButton({ label, className, ...props }: ComponentProps<"butto
       aria-label={label}
       title={label}
       className={clsx(
-        "inline-flex size-8 items-center justify-center rounded-lg text-fg-2 transition-colors hover:bg-surface-2 hover:text-fg disabled:opacity-40",
+        "inline-flex size-8 pointer-coarse:size-11 items-center justify-center rounded-lg text-fg-2 transition-colors hover:bg-surface-2 hover:text-fg disabled:opacity-40",
         className,
       )}
       {...props}

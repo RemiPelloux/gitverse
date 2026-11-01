@@ -3,7 +3,7 @@
 import { clsx } from "clsx";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { ClipboardCopy, CornerDownLeft, Eraser, Lightbulb, Play, Sparkles, TextCursorInput } from "lucide-react";
+import { ClipboardCopy, CornerDownLeft, Eraser, Lightbulb, Play, TextCursorInput } from "lucide-react";
 import type { OutLine } from "@/engine";
 import { explainTokens } from "@/features/docs/commands";
 import { complete, highlight, type Completion } from "./completion";
@@ -12,14 +12,14 @@ import { useLab, type TermEntry } from "./store";
 const LINE_CLS: Record<OutLine["kind"], string> = {
   out: "text-[var(--t-text)]",
   muted: "text-[var(--t-muted)]",
-  error: "text-[#fda4af]",
-  success: "text-[#6ee7b7]",
-  hint: "text-[#c4b5fd]",
-  added: "text-[#6ee7b7]",
-  removed: "text-[#fda4af]",
-  hunk: "text-[#93c5fd]",
-  commit: "text-[#fcd34d]",
-  warning: "text-[#fcd34d]",
+  error: "text-[var(--t-red)]",
+  success: "text-[var(--t-green)]",
+  hint: "text-[var(--t-orange)]",
+  added: "text-[var(--t-green)]",
+  removed: "text-[var(--t-red)]",
+  hunk: "text-[var(--t-blue)]",
+  commit: "text-[var(--t-yellow)]",
+  warning: "text-[var(--t-yellow)]",
 };
 
 export interface TerminalProps {
@@ -133,12 +133,7 @@ export function Terminal({ mode, suggestion, className, onModeChange, autoFocus,
   return (
     <div className={clsx("terminal flex h-full min-h-0 flex-col overflow-hidden bg-term font-mono text-[13px] leading-[1.55]", className)}>
       <div className="flex h-9 shrink-0 items-center gap-2 border-b border-white/5 px-3 text-xs text-[var(--t-muted)]">
-        <span className="flex gap-1.5" aria-hidden>
-          <span className="size-2.5 rounded-full bg-[#fb7185]/70" />
-          <span className="size-2.5 rounded-full bg-[#fbbf24]/70" />
-          <span className="size-2.5 rounded-full bg-[#34d399]/70" />
-        </span>
-        <span className="ml-1 truncate font-sans">Terminal · simulated, safe to experiment</span>
+        <span className="truncate">bash — ~/project <span className="font-sans text-[var(--t-muted)]">· simulated</span></span>
         <div className="ml-auto flex items-center gap-1">
           {onModeChange && (
             <div className="mr-1 flex rounded-lg bg-white/5 p-0.5 font-sans" role="radiogroup" aria-label="Terminal mode">
@@ -148,20 +143,20 @@ export function Terminal({ mode, suggestion, className, onModeChange, autoFocus,
                   role="radio"
                   aria-checked={mode === m}
                   onClick={() => onModeChange(m)}
-                  className={clsx("rounded-md px-2 py-0.5 text-[11px] transition-colors", mode === m ? "bg-white/10 text-white" : "hover:text-white")}
+                  className={clsx("rounded-md px-2 py-0.5 text-[11px] transition-colors pointer-coarse:py-2", mode === m ? "bg-white/10 text-white" : "hover:text-white")}
                 >
                   {m === "assisted" ? "Assisted" : "Real"}
                 </button>
               ))}
             </div>
           )}
-          <button onClick={copyOutput} className="rounded-md p-1 hover:bg-white/5 hover:text-white" aria-label="Copy terminal output" title="Copy output">
+          <button onClick={copyOutput} className="rounded-md p-1 hover:bg-white/5 hover:text-white pointer-coarse:p-2.5" aria-label="Copy terminal output" title="Copy output">
             <ClipboardCopy className="size-3.5" />
           </button>
-          <button onClick={clearTerminal} className="rounded-md p-1 hover:bg-white/5 hover:text-white" aria-label="Clear terminal (Ctrl+L)" title="Clear (Ctrl+L)">
+          <button onClick={clearTerminal} className="rounded-md p-1 hover:bg-white/5 hover:text-white pointer-coarse:p-2.5" aria-label="Clear terminal (Ctrl+L)" title="Clear (Ctrl+L)">
             <Eraser className="size-3.5" />
           </button>
-          {copied && <span className="font-sans text-[11px] text-[#6ee7b7]">Copied</span>}
+          {copied && <span className="font-sans text-[11px] text-[var(--t-green)]">Copied</span>}
         </div>
       </div>
 
@@ -197,7 +192,7 @@ export function Terminal({ mode, suggestion, className, onModeChange, autoFocus,
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.12 }}
-              className="absolute bottom-full left-3 z-10 mb-1 w-72 overflow-hidden rounded-xl border border-white/10 bg-[#161a2e] py-1 shadow-xl"
+              className="absolute bottom-full left-3 z-10 mb-1 w-72 overflow-hidden rounded-md border border-white/10 bg-[#2a2721] py-1 shadow-xl"
               role="listbox"
             >
               {completions.map((c, i) => (
@@ -248,7 +243,7 @@ export function Terminal({ mode, suggestion, className, onModeChange, autoFocus,
               autoCorrect="off"
               enterKeyHint="go"
               aria-describedby="term-help"
-              className="w-full bg-transparent text-transparent caret-[#c4b5fd] outline-none selection:bg-violet/40"
+              className="w-full bg-transparent text-transparent caret-[var(--t-orange)] outline-none selection:bg-accent/40"
             />
           </div>
           <button
@@ -275,10 +270,10 @@ export function Terminal({ mode, suggestion, className, onModeChange, autoFocus,
 function Prompt({ branch }: { branch: string | null }) {
   return (
     <span className="shrink-0 select-none">
-      <span className="text-[#6ee7b7]">you</span>
+      <span className="text-[var(--t-green)]">you</span>
       <span className="text-[var(--t-muted)]">:</span>
-      <span className="text-[#93c5fd]">~/project</span>
-      {branch && <span className="text-[#c4b5fd]"> ({branch})</span>}
+      <span className="text-[var(--t-blue)]">~/project</span>
+      {branch && <span className="text-[var(--t-orange)]"> ({branch})</span>}
       <span className="text-[var(--t-muted)]"> $</span>
     </span>
   );
@@ -306,7 +301,7 @@ function Entry({ entry }: { entry: TermEntry }) {
         <motion.div
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mt-1.5 flex gap-2 rounded-lg border border-[#fbbf24]/20 bg-[#fbbf24]/[0.07] px-3 py-2 font-sans text-[13px] leading-snug text-[#fde68a]"
+          className="mt-1.5 flex gap-2 rounded-lg border border-[var(--t-yellow)]/20 bg-[var(--t-yellow)]/[0.07] px-3 py-2 font-sans text-[13px] leading-snug text-[var(--t-yellow)]"
         >
           <Lightbulb className="mt-0.5 size-4 shrink-0" aria-hidden />
           <span>
@@ -322,23 +317,23 @@ function Entry({ entry }: { entry: TermEntry }) {
 function AssistBar({ suggestion, onRun, onInsert, compact }: { suggestion: string; onRun: () => void; onInsert: () => void; compact?: boolean }) {
   const tokens = explainTokens(suggestion);
   const tone: Record<string, string> = {
-    program: "text-[#c4b5fd]",
-    command: "text-[#6ee7b7]",
-    flag: "text-[#fcd34d]",
-    value: "text-[#f9a8d4]",
+    program: "text-[var(--t-orange)]",
+    command: "text-[var(--t-green)]",
+    flag: "text-[var(--t-yellow)]",
+    value: "text-[var(--t-magenta)]",
     operator: "text-[var(--t-muted)]",
   };
   return (
     <div className="shrink-0 border-t border-white/5 bg-white/[0.02] px-3 py-2">
       <div className="flex items-center gap-2">
-        <Sparkles className="size-3.5 shrink-0 text-[#c4b5fd]" aria-hidden />
-        <span className="font-sans text-[11px] tracking-wide text-[var(--t-muted)] uppercase">Suggested</span>
+        <span className="shrink-0 text-[var(--t-orange)]" aria-hidden>›</span>
+        <span className="font-sans text-[11px] text-[var(--t-muted)] ">Suggested</span>
         <code className="min-w-0 truncate text-white">{suggestion}</code>
         <div className="ml-auto flex shrink-0 gap-1 font-sans">
           <button onClick={onInsert} className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--t-muted)] hover:bg-white/5 hover:text-white" title="Put it in the input so you can type/edit it">
             <TextCursorInput className="size-3.5" /> <span className="hidden sm:inline">Insert</span>
           </button>
-          <button onClick={onRun} className="flex items-center gap-1 rounded-lg bg-[#8b5cf6] px-2.5 py-1 text-xs font-medium text-white hover:brightness-110">
+          <button onClick={onRun} className="flex items-center gap-1 rounded-lg bg-[var(--accent)] px-2.5 py-1 text-xs font-medium text-white hover:brightness-110">
             <Play className="size-3 fill-current" /> Run
           </button>
         </div>

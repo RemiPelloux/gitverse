@@ -44,9 +44,9 @@ export function resolveConflicts(text: string, pick: "ours" | "theirs" | "both")
 
 const REGION_CLS: Record<Region, string> = {
   plain: "",
-  marker: "bg-coral-soft text-coral",
-  ours: "bg-violet-soft",
-  theirs: "bg-mint-soft",
+  marker: "bg-bad-soft text-bad",
+  ours: "bg-accent-soft",
+  theirs: "bg-ok-soft",
 };
 
 export function Editor({ path, onBack }: { path: string; onBack?: () => void }) {
@@ -121,13 +121,13 @@ export function Editor({ path, onBack }: { path: string; onBack?: () => void }) 
       </div>
 
       {conflicted && view === "edit" && (
-        <div className="border-b border-line bg-coral-soft/40 px-3 py-2">
-          <p className="flex items-center gap-1.5 text-xs font-medium text-coral">
+        <div className="border-b border-line bg-bad-soft/40 px-3 py-2">
+          <p className="flex items-center gap-1.5 text-xs font-medium text-bad">
             <ShieldAlert className="size-3.5" /> Conflict: choose what to keep
           </p>
           <p className="mt-0.5 text-[11px] text-fg-2">
-            <span className="rounded bg-violet-soft px-1">violet</span> = current branch (HEAD) ·{" "}
-            <span className="rounded bg-mint-soft px-1">mint</span> = incoming{op ? ` (${op.theirsLabel})` : ""}
+            <span className="rounded bg-accent-soft px-1">highlighted</span> = current branch (HEAD) ·{" "}
+            <span className="rounded bg-ok-soft px-1">green</span> = incoming{op ? ` (${op.theirsLabel})` : ""}
           </p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {(
@@ -153,7 +153,7 @@ export function Editor({ path, onBack }: { path: string; onBack?: () => void }) 
         </div>
       )}
       {!conflicted && op?.conflicts.includes(path) && (
-        <div className="border-b border-line bg-mint-soft px-3 py-2 text-xs text-mint">
+        <div className="border-b border-line bg-ok-soft px-3 py-2 text-xs text-ok">
           Markers removed. Now mark it resolved: <code className="font-mono">git add {path}</code>
         </div>
       )}
@@ -180,7 +180,7 @@ export function Editor({ path, onBack }: { path: string; onBack?: () => void }) 
                 onBlur={() => pending && flush(draft)}
                 spellCheck={false}
                 aria-label={`Edit ${path}`}
-                className="absolute inset-0 h-full w-full resize-none overflow-hidden bg-transparent px-3 py-2 leading-6 whitespace-pre text-transparent caret-violet outline-none"
+                className="absolute inset-0 h-full w-full resize-none overflow-hidden bg-transparent px-3 py-2 leading-6 whitespace-pre text-transparent caret-accent outline-none"
                 wrap="off"
               />
             </div>
@@ -201,21 +201,21 @@ export function DiffBlock({ title, from, to, empty }: { title: string; from?: st
   return (
     <section>
       {title && (
-        <h4 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-fg-3 uppercase">
+        <h4 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-fg-3 ">
           <GitCompare className="size-3.5" /> {title}
         </h4>
       )}
       {!hs.length ? (
         <p className="text-xs text-fg-3">{empty}</p>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-line font-mono text-[12px] leading-5">
+        <div className="overflow-hidden rounded-md border border-line font-mono text-[12px] leading-5">
           {hs.map((h, i) => (
             <div key={i}>
-              <div className="bg-surface-2 px-3 text-sky">{h.header}</div>
+              <div className="bg-surface-2 px-3 text-info">{h.header}</div>
               {h.lines.map((l, j) => (
                 <div
                   key={j}
-                  className={clsx("px-3 whitespace-pre-wrap", l.op === "add" ? "bg-mint-soft text-mint" : l.op === "del" ? "bg-coral-soft text-coral" : "text-fg-2")}
+                  className={clsx("px-3 whitespace-pre-wrap", l.op === "add" ? "bg-ok-soft text-ok" : l.op === "del" ? "bg-bad-soft text-bad" : "text-fg-2")}
                 >
                   <span className="select-none">{l.op === "add" ? "+ " : l.op === "del" ? "− " : "  "}</span>
                   {l.line}

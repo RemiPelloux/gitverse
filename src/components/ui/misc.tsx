@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 import { useSyncExternalStore, type ReactNode } from "react";
 import {
   Award, Blocks, Camera, CloudUpload, Compass, FlaskConical, FolderGit2, GitBranch, GitMerge, Handshake, History, LifeBuoy,
-  RefreshCw, Sparkles, Swords, TerminalSquare, type LucideIcon,
+  RefreshCw, Swords, TerminalSquare, type LucideIcon,
 } from "lucide-react";
 
 const ICONS: Record<string, LucideIcon> = {
@@ -22,7 +22,7 @@ export function useHydrated() {
   );
 }
 
-export function ProgressBar({ value, className, tone = "violet", label }: { value: number; className?: string; tone?: "violet" | "mint"; label?: string }) {
+export function ProgressBar({ value, className, tone = "accent", label }: { value: number; className?: string; tone?: "accent" | "ok"; label?: string }) {
   const pct = Math.max(0, Math.min(1, value)) * 100;
   return (
     <div
@@ -34,7 +34,7 @@ export function ProgressBar({ value, className, tone = "violet", label }: { valu
       aria-valuemax={100}
     >
       <motion.div
-        className={clsx("h-full rounded-full", tone === "violet" ? "bg-gradient-to-r from-violet to-violet-2" : "bg-mint")}
+        className={clsx("h-full rounded-full", tone === "accent" ? "bg-accent-mark" : "bg-ok")}
         initial={false}
         animate={{ width: `${pct}%` }}
         transition={{ type: "spring", stiffness: 140, damping: 22 }}
@@ -52,7 +52,7 @@ export function Card({ className, children, ...rest }: { className?: string; chi
 }
 
 export function DynamicIcon({ name, className }: { name: string; className?: string }) {
-  const Icon = ICONS[name] ?? Sparkles;
+  const Icon = ICONS[name] ?? Award;
   return <Icon className={className} aria-hidden />;
 }
 
@@ -60,30 +60,24 @@ export function Logo({ className }: { className?: string }) {
   return (
     <span className={clsx("inline-flex items-center gap-2 font-semibold tracking-tight", className)}>
       <svg viewBox="0 0 32 32" className="size-7" aria-hidden>
-        <defs>
-          <linearGradient id="gv-logo" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="var(--violet-2)" />
-            <stop offset="1" stopColor="var(--mint)" />
-          </linearGradient>
-        </defs>
-        <rect width="32" height="32" rx="9" fill="url(#gv-logo)" opacity="0.18" />
-        <path d="M10 9v14M10 16c0-4 12-2 12-7" stroke="url(#gv-logo)" strokeWidth="2.6" strokeLinecap="round" fill="none" />
-        <circle cx="10" cy="9" r="3" fill="var(--violet-2)" />
-        <circle cx="10" cy="23" r="3" fill="var(--violet-2)" />
-        <circle cx="22" cy="9" r="3" fill="var(--mint)" />
+        <rect width="32" height="32" rx="6" fill="var(--accent-mark)" />
+        <path d="M11 8v16M11 17c0-4 10-3 10-8" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" fill="none" />
+        <circle cx="11" cy="8.5" r="2.6" fill="#fff" />
+        <circle cx="11" cy="23.5" r="2.6" fill="#fff" />
+        <circle cx="21" cy="8.5" r="2.6" fill="#fff" />
       </svg>
       <span>Gitverse</span>
     </span>
   );
 }
 
-export function Pill({ children, tone = "neutral", className }: { children: ReactNode; tone?: "neutral" | "violet" | "mint" | "amber" | "coral"; className?: string }) {
+export function Pill({ children, tone = "neutral", className }: { children: ReactNode; tone?: "neutral" | "accent" | "ok" | "warn" | "bad"; className?: string }) {
   const tones = {
     neutral: "bg-surface-2 text-fg-2 border-line",
-    violet: "bg-violet-soft text-violet-2 border-transparent",
-    mint: "bg-mint-soft text-mint border-transparent",
-    amber: "bg-amber-soft text-amber border-transparent",
-    coral: "bg-coral-soft text-coral border-transparent",
+    accent: "bg-accent-soft text-accent-fg border-transparent",
+    ok: "bg-ok-soft text-ok border-transparent",
+    warn: "bg-warn-soft text-warn border-transparent",
+    bad: "bg-bad-soft text-bad border-transparent",
   };
   return <span className={clsx("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium", tones[tone], className)}>{children}</span>;
 }

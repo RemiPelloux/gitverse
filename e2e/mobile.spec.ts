@@ -18,3 +18,12 @@ test("first lesson is completable on a phone", async ({ page }) => {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
   expect(overflow).toBe(false);
 });
+
+for (const path of ["/", "/learn", "/commands", "/profile", "/playground", "/learn/what-is-git"]) {
+  test(`no horizontal overflow on ${path}`, async ({ page }) => {
+    await page.goto(path);
+    await page.waitForTimeout(800);
+    const { inner, visual } = await page.evaluate(() => ({ inner: window.innerWidth, visual: window.visualViewport!.width }));
+    expect(inner).toBeLessThanOrEqual(Math.ceil(visual));
+  });
+}

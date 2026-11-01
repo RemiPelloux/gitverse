@@ -219,14 +219,14 @@ export function GitGraph({ world, events = [], eventKey = 0, ghosts = [], select
                   <path
                     d={`M ${nx(theirs)} ${ny(theirs)} C ${x} ${ny(theirs)} ${x - 20} ${ny(head)} ${x} ${ny(head)}`}
                     className="dash-flow"
-                    stroke="var(--coral)"
+                    stroke="var(--bad)"
                     strokeWidth={2.5}
                     strokeDasharray="6 6"
                     fill="none"
                   />
-                  <path d={`M ${nx(head)} ${ny(head)} L ${x} ${ny(head)}`} className="dash-flow" stroke="var(--coral)" strokeWidth={2.5} strokeDasharray="6 6" />
-                  <circle cx={x} cy={ny(head)} r={R} fill="var(--coral-soft)" stroke="var(--coral)" strokeWidth={2} strokeDasharray="3 3" />
-                  <text x={x} y={ny(head) - R - 12} textAnchor="middle" className="fill-coral font-mono text-[11px] font-medium">
+                  <path d={`M ${nx(head)} ${ny(head)} L ${x} ${ny(head)}`} className="dash-flow" stroke="var(--bad)" strokeWidth={2.5} strokeDasharray="6 6" />
+                  <circle cx={x} cy={ny(head)} r={R} fill="var(--bad-soft)" stroke="var(--bad)" strokeWidth={2} strokeDasharray="3 3" />
+                  <text x={x} y={ny(head) + R + 18} textAnchor="middle" className="fill-bad font-mono text-[11px] font-medium">
                     {conflict.conflicts.length ? `${conflict.kind}: conflict!` : `${conflict.kind}: ready`}
                   </text>
                 </g>
@@ -257,7 +257,7 @@ export function GitGraph({ world, events = [], eventKey = 0, ghosts = [], select
 
       {hoverNode && !dragging && (
         <div
-          className="pointer-events-none absolute z-10 w-60 rounded-xl border border-line bg-elevated/95 p-3 text-xs shadow-[var(--shadow)] backdrop-blur"
+          className="pointer-events-none absolute z-10 w-60 rounded-md border border-line bg-elevated p-3 text-xs shadow-[var(--shadow)]"
           style={{
             left: Math.min(size.w - 250, Math.max(8, nx(hoverNode) * view.k + view.x - 120)),
             top: ny(hoverNode) * view.k + view.y + 30 * view.k + 12 > size.h - 110 ? ny(hoverNode) * view.k + view.y - 130 : ny(hoverNode) * view.k + view.y + 28,
@@ -275,7 +275,7 @@ export function GitGraph({ world, events = [], eventKey = 0, ghosts = [], select
       )}
 
       {!compact && (
-        <div className="absolute right-3 bottom-3 flex items-center gap-1 rounded-xl border border-line bg-surface/90 p-1 shadow-[var(--shadow)] backdrop-blur">
+        <div className="absolute right-3 bottom-3 flex items-center gap-1 rounded-md border border-line bg-surface p-1 shadow-[var(--shadow)]">
           <GraphBtn label="Zoom out" onClick={() => zoom(0.8)}>
             <Minus className="size-4" />
           </GraphBtn>
@@ -320,7 +320,7 @@ function GraphBtn({ label, onClick, children, active }: { label: string; onClick
         e.stopPropagation();
         onClick();
       }}
-      className={clsx("grid size-8 place-items-center rounded-lg transition-colors", active ? "bg-violet-soft text-violet-2" : "text-fg-2 hover:bg-surface-2 hover:text-fg")}
+      className={clsx("grid size-8 place-items-center rounded-lg transition-colors pointer-coarse:size-11", active ? "bg-accent-soft text-accent-fg" : "text-fg-2 hover:bg-surface-2 hover:text-fg")}
     >
       {children}
     </button>
@@ -379,7 +379,7 @@ function CommitNode({
       {pulse > 0 && (
         <circle key={pulse} r={R} fill="none" stroke={color} strokeWidth={3} style={{ animation: "pulse-ring 0.9s ease-out 2", transformOrigin: "center", transformBox: "fill-box" }} />
       )}
-      <circle className="ring" r={R + 7} fill="none" stroke="var(--violet)" strokeWidth={2} opacity={selected ? 1 : 0} />
+      <circle className="ring" r={R + 7} fill="none" stroke="var(--accent)" strokeWidth={2} opacity={selected ? 1 : 0} />
       {n.isHead && <circle r={R + 4} fill="none" stroke="var(--text)" strokeWidth={2} opacity={0.9} />}
       <circle
         r={R}
@@ -389,7 +389,7 @@ function CommitNode({
         strokeDasharray={n.orphan ? "3 3" : undefined}
       />
       {n.merge && <circle r={4.5} fill="var(--bg)" />}
-      {rewritten && <circle r={R + 4} fill="none" stroke="var(--amber)" strokeWidth={1.5} strokeDasharray="2 3" />}
+      {rewritten && <circle r={R + 4} fill="none" stroke="var(--warn)" strokeWidth={1.5} strokeDasharray="2 3" />}
       <text y={R + 18} textAnchor="middle" className="fill-[var(--text-2)] text-[11px] font-medium">
         {trunc(n.commit.message.split("\n")[0], compact ? 16 : 15)}
       </text>
@@ -440,8 +440,8 @@ function RefLabels({ layout }: { layout: GraphLayout }) {
               width={w}
               height={22}
               rx={11}
-              fill={isRemote ? "var(--surface)" : isTag ? "var(--amber-soft)" : isHead ? "var(--coral-soft)" : "var(--surface-2)"}
-              stroke={isTag ? "var(--amber)" : isHead ? "var(--coral)" : laneColor(l.lane)}
+              fill={isRemote ? "var(--surface)" : isTag ? "var(--warn-soft)" : isHead ? "var(--bad-soft)" : "var(--surface-2)"}
+              stroke={isTag ? "var(--warn)" : isHead ? "var(--bad)" : laneColor(l.lane)}
               strokeWidth={l.current ? 2 : 1.25}
               strokeDasharray={isRemote ? "3 3" : undefined}
             />
@@ -455,14 +455,14 @@ function RefLabels({ layout }: { layout: GraphLayout }) {
             )}
             {(isRemote || isTag) && (
               <foreignObject x={-w / 2 + 7} y={-7} width={14} height={14}>
-                {isRemote ? <Cloud className="size-3.5 text-fg-2" /> : <Tag className="size-3.5 text-amber" />}
+                {isRemote ? <Cloud className="size-3.5 text-fg-2" /> : <Tag className="size-3.5 text-warn" />}
               </foreignObject>
             )}
             <text
               x={(l.current ? 22 : 0) + (isRemote || isTag ? 7 : 0)}
               y={4}
               textAnchor="middle"
-              className={clsx("font-mono text-[11px] font-semibold", isHead ? "fill-coral" : isTag ? "fill-amber" : isRemote ? "fill-[var(--text-2)]" : "fill-[var(--text)]")}
+              className={clsx("font-mono text-[11px] font-semibold", isHead ? "fill-bad" : isTag ? "fill-warn" : isRemote ? "fill-[var(--text-2)]" : "fill-[var(--text)]")}
             >
               {isHead ? "HEAD (detached)" : text}
             </text>
@@ -479,16 +479,16 @@ function EmptyGraph({ kind, branch, className, compact }: { kind: "no-repo" | "n
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className={clsx("grid place-items-center rounded-full border-2 border-dashed", kind === "no-repo" ? "border-line-strong" : "border-violet/60", compact ? "size-12" : "size-16")}
+        className={clsx("grid place-items-center rounded-full border-2 border-dashed", kind === "no-repo" ? "border-line-strong" : "border-accent/60", compact ? "size-12" : "size-16")}
       >
-        <GitCommitHorizontal className={clsx(kind === "no-repo" ? "text-fg-3" : "text-violet-2", compact ? "size-5" : "size-7")} />
+        <GitCommitHorizontal className={clsx(kind === "no-repo" ? "text-fg-3" : "text-accent-fg", compact ? "size-5" : "size-7")} />
       </motion.div>
       <div>
         <p className="text-sm font-medium text-fg">{kind === "no-repo" ? "No repository yet" : "No commits yet"}</p>
         <p className="mt-1 max-w-xs text-xs text-fg-2">
           {kind === "no-repo" ? (
             <>
-              Git isn&apos;t watching this folder. Run <code className="font-mono text-violet-2">git init</code> to start.
+              Git isn&apos;t watching this folder. Run <code className="font-mono text-accent-fg">git init</code> to start.
             </>
           ) : (
             <>

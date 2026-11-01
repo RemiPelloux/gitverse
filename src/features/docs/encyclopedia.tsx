@@ -11,9 +11,9 @@ import { Button, LinkButton } from "@/components/ui/button";
 import { COMMAND_DOCS, type CommandDoc } from "./commands";
 
 const RISK = {
-  safe: { label: "Safe", icon: ShieldCheck, cls: "bg-mint-soft text-mint" },
-  careful: { label: "Use with care", icon: AlertTriangle, cls: "bg-amber-soft text-amber" },
-  destructive: { label: "Can lose work", icon: Skull, cls: "bg-coral-soft text-coral" },
+  safe: { label: "Safe", icon: ShieldCheck, cls: "bg-ok-soft text-ok" },
+  careful: { label: "Use with care", icon: AlertTriangle, cls: "bg-warn-soft text-warn" },
+  destructive: { label: "Can lose work", icon: Skull, cls: "bg-bad-soft text-bad" },
 } as const;
 
 export function Encyclopedia() {
@@ -23,8 +23,8 @@ export function Encyclopedia() {
   const groups = [...new Set(COMMAND_DOCS.map((d) => d.category))];
   const doc = COMMAND_DOCS.find((d) => d.name === sel)!;
   return (
-    <div className="mx-auto grid max-w-6xl gap-6 px-4 pt-8 pb-28 md:grid-cols-[260px_1fr] md:pb-16">
-      <aside className="md:sticky md:top-20 md:self-start">
+    <div className="mx-auto grid max-w-6xl gap-6 px-4 pt-8 pb-28 md:grid-cols-[260px_minmax(0,1fr)] md:pb-16">
+      <aside className="min-w-0 md:sticky md:top-20 md:self-start">
         <h1 className="text-2xl font-semibold tracking-tight">Commands</h1>
         <p className="mt-1 text-sm text-fg-2">Every command, explained — with a live before/after.</p>
         <label className="relative mt-4 block">
@@ -33,7 +33,7 @@ export function Encyclopedia() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search… e.g. undo, branch"
-            className="w-full rounded-xl border border-line bg-surface py-2 pr-3 pl-9 text-sm outline-none focus:border-violet"
+            className="w-full rounded-md border border-line bg-surface py-2 pr-3 pl-9 text-sm outline-none focus:border-accent"
             aria-label="Search commands"
           />
         </label>
@@ -43,7 +43,7 @@ export function Encyclopedia() {
             if (!items.length) return null;
             return (
               <div key={g} className="contents md:block">
-                <p className="mb-1 hidden px-2 text-[11px] font-semibold tracking-wide text-fg-3 uppercase md:block">{g}</p>
+                <p className="mb-1 hidden px-2 text-[11px] font-semibold text-fg-3 md:block">{g}</p>
                 {items.map((d) => (
                   <button
                     key={d.name}
@@ -51,7 +51,7 @@ export function Encyclopedia() {
                     aria-current={sel === d.name}
                     className={clsx(
                       "shrink-0 rounded-lg px-2.5 py-1.5 text-left font-mono text-sm md:flex md:w-full md:items-center md:justify-between",
-                      sel === d.name ? "bg-violet-soft text-violet-2" : "text-fg-2 hover:bg-surface-2 hover:text-fg",
+                      sel === d.name ? "bg-accent-soft text-accent-fg" : "text-fg-2 hover:bg-surface-2 hover:text-fg",
                     )}
                   >
                     git {d.name}
@@ -77,7 +77,7 @@ function CommandPage({ doc }: { doc: CommandDoc }) {
   const risk = RISK[doc.risk];
   const world = showAfter ? after.world : before;
   return (
-    <article>
+    <article className="min-w-0">
       <div className="flex flex-wrap items-center gap-3">
         <h2 className="font-mono text-3xl font-semibold tracking-tight">git {doc.name}</h2>
         <span className={clsx("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium", risk.cls)}>
@@ -86,9 +86,9 @@ function CommandPage({ doc }: { doc: CommandDoc }) {
       </div>
       <p className="mt-2 text-lg text-fg">{doc.summary}</p>
       <p className="mt-1 text-fg-2">{doc.plain}</p>
-      {doc.riskNote && <p className={clsx("mt-3 rounded-xl px-3 py-2 text-sm", risk.cls)}>{doc.riskNote}</p>}
+      {doc.riskNote && <p className={clsx("mt-3 rounded-md px-3 py-2 text-sm", risk.cls)}>{doc.riskNote}</p>}
 
-      <section className="mt-6 overflow-hidden rounded-3xl border border-line bg-surface">
+      <section className="mt-6 overflow-hidden rounded-lg border border-line bg-surface">
         <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-2.5">
           <p className="text-sm font-medium">Live example</p>
           <div className="flex rounded-lg bg-surface-2 p-0.5 text-xs" role="radiogroup" aria-label="Before or after">
@@ -113,7 +113,7 @@ function CommandPage({ doc }: { doc: CommandDoc }) {
         </div>
         <div className="terminal bg-term px-4 py-3 font-mono text-[13px]">
           <p>
-            <span className="text-[#6ee7b7]">$</span> <span className="text-white">{doc.demo.command}</span>
+            <span className="text-[var(--t-green)]">$</span> <span className="text-white">{doc.demo.command}</span>
           </p>
           {showAfter ? (
             after.lines.slice(0, 14).map((l, i) => (
@@ -151,7 +151,7 @@ function CommandPage({ doc }: { doc: CommandDoc }) {
             <dl className="mt-2 space-y-2">
               {doc.flags.map((f) => (
                 <div key={f.flag} className="flex gap-3 text-sm">
-                  <dt className="w-28 shrink-0 font-mono text-amber">{f.flag}</dt>
+                  <dt className="w-28 shrink-0 font-mono text-warn">{f.flag}</dt>
                   <dd className="text-fg-2">{f.desc}</dd>
                 </div>
               ))}

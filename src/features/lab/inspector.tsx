@@ -27,7 +27,7 @@ export function CommitInspector() {
   return (
     <div className="scrollbar-thin h-full overflow-y-auto p-3">
       <div className="flex items-start gap-2">
-        <span className={clsx("mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg", c.parents.length > 1 ? "bg-mint-soft text-mint" : "bg-violet-soft text-violet-2")}>
+        <span className={clsx("mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg", c.parents.length > 1 ? "bg-ok-soft text-ok" : "bg-accent-soft text-accent-fg")}>
           {c.parents.length > 1 ? <GitMerge className="size-4" /> : <GitCommitHorizontal className="size-4" />}
         </span>
         <div className="min-w-0">
@@ -42,7 +42,7 @@ export function CommitInspector() {
         <dd className="flex flex-wrap gap-1">
           {c.parents.length ? (
             c.parents.map((p) => (
-              <button key={p} onClick={() => select(p)} className="rounded-md bg-surface-2 px-1.5 font-mono text-[11px] text-violet-2 hover:bg-elevated">
+              <button key={p} onClick={() => select(p)} className="rounded-md bg-surface-2 px-1.5 font-mono text-[11px] text-accent-fg hover:bg-elevated">
                 {shortId(p)}
               </button>
             ))
@@ -60,12 +60,12 @@ export function CommitInspector() {
               </span>
             ))
           ) : (
-            <span className="text-amber">no branch (unreachable — find it in git reflog)</span>
+            <span className="text-warn">no branch (unreachable — find it in git reflog)</span>
           )}
         </dd>
       </dl>
       {c.message.includes("\n") && <p className="mt-3 rounded-lg bg-surface-2 p-2 text-xs whitespace-pre-wrap text-fg-2">{c.message}</p>}
-      <h4 className="mt-4 mb-2 text-[11px] font-semibold tracking-wide text-fg-3 uppercase">
+      <h4 className="mt-4 mb-2 text-[11px] font-semibold text-fg-3 ">
         {c.parents.length > 1 ? "Snapshot files" : `Changed files (${files.length})`}
       </h4>
       <div className="space-y-3">
@@ -122,20 +122,20 @@ export function RemoteView({ world }: { world: World }) {
           cur = world.hostedCommits[cur]?.parents[0];
         }
         return (
-          <section key={name} className="overflow-hidden rounded-2xl border border-line">
+          <section key={name} className="overflow-hidden rounded-lg border border-line">
             <header className="flex items-center gap-2 border-b border-line bg-surface-2 px-3 py-2">
-              <Cloud className="size-4 text-sky" />
+              <Cloud className="size-4 text-info" />
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium">
                   {host.owner}/<span className="font-semibold">{host.name}</span>
                 </p>
-                <p className="truncate font-mono text-[10px] text-fg-3">
+                <p className="truncate font-mono text-[11px] text-fg-3">
                   {name} → {url}
                 </p>
               </div>
             </header>
             <div className="px-3 py-2">
-              <p className="text-[11px] font-semibold tracking-wide text-fg-3 uppercase">Branches on GitHub</p>
+              <p className="text-[11px] font-semibold text-fg-3 ">Branches on GitHub</p>
               {Object.keys(host.branches).length ? (
                 <ul className="mt-1.5 space-y-1">
                   {Object.entries(host.branches).map(([b, id]) => {
@@ -146,7 +146,7 @@ export function RemoteView({ world }: { world: World }) {
                         <GitBranch className="size-3.5 text-fg-3" />
                         <span className="font-mono">{b}</span>
                         <span className="font-mono text-[11px] text-fg-3">{shortId(id)}</span>
-                        <span className={clsx("ml-auto rounded-md px-1.5 py-px text-[10px]", sync === "in sync" ? "bg-mint-soft text-mint" : "bg-amber-soft text-amber")}>{sync}</span>
+                        <span className={clsx("ml-auto rounded-md px-1.5 py-px text-[11px]", sync === "in sync" ? "bg-ok-soft text-ok" : "bg-warn-soft text-warn")}>{sync}</span>
                       </li>
                     );
                   })}
@@ -157,15 +157,15 @@ export function RemoteView({ world }: { world: World }) {
             </div>
             {log.length > 0 && (
               <div className="border-t border-line px-3 py-2">
-                <p className="text-[11px] font-semibold tracking-wide text-fg-3 uppercase">Commits on {host.defaultBranch}</p>
+                <p className="text-[11px] font-semibold text-fg-3 ">Commits on {host.defaultBranch}</p>
                 <ol className="mt-1.5 space-y-1.5">
                   {log.map((id) => {
                     const c = world.hostedCommits[id];
                     return (
                       <li key={id} className="flex items-baseline gap-2 text-xs">
-                        <span className="font-mono text-[11px] text-sky">{shortId(id)}</span>
+                        <span className="font-mono text-[11px] text-info">{shortId(id)}</span>
                         <span className="min-w-0 truncate">{c.message.split("\n")[0]}</span>
-                        <span className="ml-auto shrink-0 text-[10px] text-fg-3">{c.author}</span>
+                        <span className="ml-auto shrink-0 text-[11px] text-fg-3">{c.author}</span>
                       </li>
                     );
                   })}

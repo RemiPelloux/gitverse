@@ -53,7 +53,13 @@ let entryId = 1;
 
 const branchOf = (w: World) => (w.repo ? (w.repo.head.kind === "branch" ? w.repo.head.name : `(${w.repo.head.commit.slice(0, 7)})`) : null);
 
-export function createLabStore(initial: World, onResult?: LabState["onResult"]) {
+export function createLabStore(
+  initial: World,
+  onResult?: LabState["onResult"],
+  restore?: { entries?: TermEntry[]; inputHistory?: string[] },
+) {
+  // Keep entry ids unique when a saved transcript is restored.
+  for (const e of restore?.entries ?? []) entryId = Math.max(entryId, e.id + 1);
   return createStore<LabState>()((set, get) => {
     const commitWorld = (world: World, label: string, events: GitEvent[], ghosts: string[] = []) => {
       const { history, cursor } = get();
@@ -70,13 +76,13 @@ export function createLabStore(initial: World, onResult?: LabState["onResult"]) 
 
     return {
       world: initial,
-      entries: [],
+      entries: restore?.entries ?? [],
       history: [{ world: initial, label: "Start" }],
       cursor: 0,
       events: [],
       eventKey: 0,
       ghosts: [],
-      inputHistory: [],
+      inputHistory: restore?.inputHistory ?? [],
       selectedCommit: null,
       openFile: null,
       panelRequest: { tab: "files", key: 0 },

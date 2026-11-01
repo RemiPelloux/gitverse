@@ -30,13 +30,13 @@ export function fileStates(world: World): Map<string, FileState> {
 }
 
 export const STATE_META: Record<FileState, { letter: string; label: string; cls: string; help: string }> = {
-  untracked: { letter: "U", label: "new · untracked", cls: "text-coral bg-coral-soft", help: "Git has never saved this file. Stage it with git add." },
-  modified: { letter: "M", label: "modified", cls: "text-amber bg-amber-soft", help: "Changed since the last commit, not staged yet." },
-  staged: { letter: "S", label: "staged", cls: "text-mint bg-mint-soft", help: "This change will be in the next commit." },
-  "new-staged": { letter: "A", label: "new · staged", cls: "text-mint bg-mint-soft", help: "A new file that will be added in the next commit." },
-  "staged-modified": { letter: "M", label: "staged + edited", cls: "text-amber bg-amber-soft", help: "Part of this file is staged; newer edits aren't." },
-  conflict: { letter: "C", label: "conflict", cls: "text-coral bg-coral-soft ring-1 ring-coral/50", help: "Both branches changed this file. Resolve it, then git add." },
-  deleted: { letter: "D", label: "deleted", cls: "text-coral bg-coral-soft", help: "Removed from your folder." },
+  untracked: { letter: "U", label: "new · untracked", cls: "text-bad bg-bad-soft", help: "Git has never saved this file. Stage it with git add." },
+  modified: { letter: "M", label: "modified", cls: "text-warn bg-warn-soft", help: "Changed since the last commit, not staged yet." },
+  staged: { letter: "S", label: "staged", cls: "text-ok bg-ok-soft", help: "This change will be in the next commit." },
+  "new-staged": { letter: "A", label: "new · staged", cls: "text-ok bg-ok-soft", help: "A new file that will be added in the next commit." },
+  "staged-modified": { letter: "M", label: "staged + edited", cls: "text-warn bg-warn-soft", help: "Part of this file is staged; newer edits aren't." },
+  conflict: { letter: "C", label: "conflict", cls: "text-bad bg-bad-soft ring-1 ring-bad/50", help: "Both branches changed this file. Resolve it, then git add." },
+  deleted: { letter: "D", label: "deleted", cls: "text-bad bg-bad-soft", help: "Removed from your folder." },
   clean: { letter: "", label: "saved", cls: "text-fg-3", help: "Identical to the last commit." },
 };
 
@@ -44,7 +44,7 @@ export function StateBadge({ state, compact }: { state: FileState; compact?: boo
   const m = STATE_META[state];
   if (state === "clean") return null;
   return (
-    <span className={clsx("inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-px text-[10px] font-semibold", m.cls)} title={m.help}>
+    <span className={clsx("inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-px text-[11px] font-semibold", m.cls)} title={m.help}>
       <span className="font-mono">{m.letter}</span>
       {!compact && <span className="font-medium">{m.label}</span>}
     </span>
@@ -92,7 +92,7 @@ export function FilesPanel({ onOpen }: { onOpen?: (path: string) => void }) {
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-2">
         <div>
-          <p className="text-xs font-semibold tracking-wide text-fg-3 uppercase">Project files</p>
+          <p className="text-xs font-semibold text-fg-3 ">Project files</p>
           <p className="text-[11px] text-fg-3">
             {world.repo ? `${counts.changed} changed · ${counts.staged} staged` : "Not a Git repository yet"}
           </p>
@@ -122,10 +122,10 @@ export function FilesPanel({ onOpen }: { onOpen?: (path: string) => void }) {
                   onBlur={() => !newName && setCreating(false)}
                   onKeyDown={(e) => e.key === "Escape" && setCreating(false)}
                   placeholder="file name, e.g. README.md"
-                  className="min-w-0 flex-1 rounded-lg border border-violet/60 bg-surface-2 px-2 py-1 font-mono text-xs outline-none"
+                  className="min-w-0 flex-1 rounded-lg border border-accent/60 bg-surface-2 px-2 py-1 font-mono text-xs outline-none"
                   aria-label="New file name"
                 />
-                <button type="submit" className="rounded-lg bg-violet px-2 py-1 text-xs text-white" aria-label="Create file">
+                <button type="submit" className="rounded-lg bg-accent px-2 py-1 text-xs text-white" aria-label="Create file">
                   <Check className="size-3.5" />
                 </button>
               </form>
@@ -145,7 +145,7 @@ export function FilesPanel({ onOpen }: { onOpen?: (path: string) => void }) {
                 exit={{ opacity: 0, x: -6 }}
                 className={clsx(
                   "group flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm",
-                  openFile === p ? "bg-violet-soft" : "hover:bg-surface-2",
+                  openFile === p ? "bg-accent-soft" : "hover:bg-surface-2",
                 )}
               >
                 {renaming === p ? (
@@ -162,7 +162,7 @@ export function FilesPanel({ onOpen }: { onOpen?: (path: string) => void }) {
                       value={renameTo}
                       onChange={(e) => setRenameTo(e.target.value.replace(/\s/g, ""))}
                       onKeyDown={(e) => e.key === "Escape" && setRenaming(null)}
-                      className="min-w-0 flex-1 rounded-md border border-violet/60 bg-surface-2 px-1.5 py-0.5 font-mono text-xs outline-none"
+                      className="min-w-0 flex-1 rounded-md border border-accent/60 bg-surface-2 px-1.5 py-0.5 font-mono text-xs outline-none"
                       aria-label={`Rename ${p}`}
                     />
                     <button type="button" onClick={() => setRenaming(null)} aria-label="Cancel rename" className="text-fg-3">
@@ -223,7 +223,7 @@ export function FilesPanel({ onOpen }: { onOpen?: (path: string) => void }) {
 
 function RowBtn({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button onClick={onClick} aria-label={label} title={label} className="grid size-6 place-items-center rounded-md text-fg-3 hover:bg-elevated hover:text-fg">
+    <button onClick={onClick} aria-label={label} title={label} className="grid size-6 place-items-center rounded-md text-fg-3 hover:bg-elevated hover:text-fg pointer-coarse:size-10">
       {children}
     </button>
   );

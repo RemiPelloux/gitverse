@@ -121,7 +121,7 @@ function EngineScene({ setup, actions, intro, stages, keepGhosts }: { setup: () 
     <div className="flex flex-col gap-4">
       {stages && <StagesVisualizer world={world} showRemote={false} />}
       {!stages && (
-        <div className="h-64 overflow-hidden rounded-2xl border border-line bg-surface-2/40 sm:h-72">
+        <div className="h-64 overflow-hidden rounded-lg border border-line bg-surface-2/40 sm:h-72">
           <GitGraph world={world} events={events} eventKey={key} compact ghosts={ghosts} />
         </div>
       )}
@@ -136,7 +136,7 @@ function EngineScene({ setup, actions, intro, stages, keepGhosts }: { setup: () 
             {actions[step].label}
           </Button>
         ) : (
-          <span className="text-sm font-medium text-mint">✓ That&apos;s the idea!</span>
+          <span className="text-sm font-medium text-ok">✓ That&apos;s the idea!</span>
         )}
         {step > 0 && (
           <Button
@@ -173,7 +173,7 @@ function SnapshotsScene() {
   return (
     <div className="flex flex-col gap-4">
       <div className="relative flex items-start gap-3 overflow-x-auto pb-2">
-        <div className="absolute top-[60px] right-6 left-6 h-0.5 bg-gradient-to-r from-violet to-mint opacity-40" aria-hidden />
+        <div className="absolute top-[60px] right-6 left-6 h-0.5 bg-line-strong" aria-hidden />
         <AnimatePresence initial={false}>
           {VERSIONS.slice(0, count).map((v, i) => (
             <motion.button
@@ -183,8 +183,8 @@ function SnapshotsScene() {
               transition={{ type: "spring", stiffness: 260, damping: 20 }}
               onClick={() => setViewing(i)}
               className={clsx(
-                "relative z-[1] flex w-28 shrink-0 flex-col items-center gap-2 rounded-2xl border p-2 text-left transition-colors",
-                viewing === i ? "border-violet bg-violet-soft" : "border-line bg-surface hover:border-line-strong",
+                "relative z-[1] flex w-28 shrink-0 flex-col items-center gap-2 rounded-lg border p-2 text-left transition-colors",
+                viewing === i ? "border-accent bg-accent-soft" : "border-line bg-surface hover:border-line-strong",
               )}
               aria-label={`Snapshot from ${v.label}`}
             >
@@ -203,7 +203,7 @@ function SnapshotsScene() {
           ))}
         </AnimatePresence>
       </div>
-      <div className="rounded-2xl border border-line bg-surface-2/50 p-3">
+      <div className="rounded-lg border border-line bg-surface-2/50 p-3">
         <p className="text-xs text-fg-3">
           index.html as it was on <span className="font-medium text-fg-2">{VERSIONS[viewing].label}</span>
         </p>
@@ -220,7 +220,7 @@ function SnapshotsScene() {
             <Camera className="size-4" /> Edit & take a snapshot
           </Button>
         ) : (
-          <p className="text-sm text-mint">✓ Click any snapshot to travel back in time. That&apos;s what Git does for you.</p>
+          <p className="text-sm text-ok">✓ Click any snapshot to travel back in time. That&apos;s what Git does for you.</p>
         )}
       </div>
     </div>
@@ -232,14 +232,14 @@ function RepositoryScene() {
   const files = ["index.html", "style.css", "photo.png"];
   return (
     <div className="flex flex-col gap-4">
-      <div className="rounded-2xl border border-line bg-surface-2/50 p-4">
+      <div className="rounded-lg border border-line bg-surface-2/50 p-4">
         <p className="flex items-center gap-2 text-sm font-medium">
-          <Folder className="size-4 text-sky" /> my-website/
+          <Folder className="size-4 text-info" /> my-website/
         </p>
         <ul className="mt-2 space-y-1.5 pl-6">
           <AnimatePresence>
             {show && (
-              <motion.li initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="flex items-center gap-2 text-sm text-violet-2">
+              <motion.li initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="flex items-center gap-2 text-sm text-accent-fg">
                 <FolderLock className="size-4" /> .git/ <span className="text-xs text-fg-3">← every snapshot, branch and setting lives here</span>
               </motion.li>
             )}
@@ -265,14 +265,14 @@ function ConflictScene() {
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-3">
         {[
-          { who: "main (Maya)", line: "color: purple;", tone: "border-violet/50 bg-violet-soft" },
-          { who: "feature/dark-mode (you)", line: "color: white;", tone: "border-mint/50 bg-mint-soft" },
+          { who: "main (Maya)", line: "color: purple;", tone: "border-accent/50 bg-accent-soft" },
+          { who: "feature/dark-mode (you)", line: "color: white;", tone: "border-ok/50 bg-ok-soft" },
         ].map((s, i) => (
           <motion.div
             key={s.who}
             animate={merged ? { x: i === 0 ? 12 : -12, scale: 0.97 } : { x: 0, scale: 1 }}
             transition={{ type: "spring", stiffness: 200, damping: 15 }}
-            className={clsx("rounded-2xl border p-3", s.tone)}
+            className={clsx("rounded-lg border p-3", s.tone)}
           >
             <p className="text-xs text-fg-2">{s.who}</p>
             <pre className="mt-1 font-mono text-xs">{`body {\n  font-family: sans-serif;\n  ${s.line}\n}`}</pre>
@@ -284,14 +284,14 @@ function ConflictScene() {
           <motion.pre
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="overflow-x-auto rounded-2xl border border-coral/40 bg-surface-2 p-3 font-mono text-xs leading-5"
+            className="overflow-x-auto rounded-lg border border-bad/40 bg-surface-2 p-3 font-mono text-xs leading-5"
           >
             <span className="text-fg-2">{"body {\n  font-family: sans-serif;\n"}</span>
-            <span className="text-coral">{"<<<<<<< HEAD\n"}</span>
-            <span className="bg-violet-soft">{"  color: purple;\n"}</span>
-            <span className="text-coral">{"=======\n"}</span>
-            <span className="bg-mint-soft">{"  color: white;\n  background: #111;\n"}</span>
-            <span className="text-coral">{">>>>>>> feature/dark-mode\n"}</span>
+            <span className="text-bad">{"<<<<<<< HEAD\n"}</span>
+            <span className="bg-accent-soft">{"  color: purple;\n"}</span>
+            <span className="text-bad">{"=======\n"}</span>
+            <span className="bg-ok-soft">{"  color: white;\n  background: #111;\n"}</span>
+            <span className="text-bad">{">>>>>>> feature/dark-mode\n"}</span>
             <span className="text-fg-2">{"}"}</span>
           </motion.pre>
         )}
@@ -326,7 +326,7 @@ function HistoryScene() {
   };
   return (
     <div className="flex flex-col gap-3">
-      <div className="h-60 overflow-hidden rounded-2xl border border-line bg-surface-2/40">
+      <div className="h-60 overflow-hidden rounded-lg border border-line bg-surface-2/40">
         <GitGraph world={world} onSelect={select} compact />
       </div>
       <p className="text-sm text-fg-2">
@@ -334,7 +334,7 @@ function HistoryScene() {
         <span className="font-mono text-fg">{Object.keys(world.workdir).sort().join(", ")}</span>
       </p>
       {world.repo?.head.kind === "detached" && (
-        <p className="text-xs text-amber">HEAD is “detached”: you&apos;re looking at an old snapshot, not standing on a branch. Click the newest circle to return to main.</p>
+        <p className="text-xs text-warn">HEAD is “detached”: you&apos;re looking at an old snapshot, not standing on a branch. Click the newest circle to return to main.</p>
       )}
     </div>
   );
@@ -365,7 +365,7 @@ function RemoteScene({ pull }: { pull: boolean }) {
                 initial={{ x: pull ? 40 : -10, opacity: 0 }}
                 animate={{ x: pull ? -10 : 40, opacity: [0, 1, 1, 0] }}
                 transition={{ duration: 0.9, ease: "easeInOut" }}
-                className="absolute top-3 left-0 size-3 rounded-full bg-violet shadow-[0_0_12px_var(--violet)]"
+                className="absolute top-3 left-0 size-3 rounded-full bg-accent"
               />
             )}
           </AnimatePresence>
@@ -397,7 +397,7 @@ function RemoteScene({ pull }: { pull: boolean }) {
 
 function Machine({ icon, title, commits, tracking, remote }: { icon: React.ReactNode; title: string; commits: string[]; tracking?: string | null; remote?: boolean }) {
   return (
-    <div className={clsx("min-w-0 rounded-2xl border p-3", remote ? "border-sky/40 bg-[color-mix(in_oklab,var(--sky)_8%,transparent)]" : "border-line bg-surface-2/50")}>
+    <div className={clsx("min-w-0 rounded-lg border p-3", remote ? "border-info/40 bg-info-soft" : "border-line bg-surface-2/50")}>
       <p className="flex items-center gap-1.5 text-xs font-medium text-fg-2">
         {icon}
         {title}
@@ -406,9 +406,9 @@ function Machine({ icon, title, commits, tracking, remote }: { icon: React.React
         <AnimatePresence initial={false}>
           {commits.map((c) => (
             <motion.li key={c} layout initial={{ opacity: 0, x: remote ? -8 : 8 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-1.5 text-xs">
-              <span className={clsx("size-2.5 shrink-0 rounded-full", remote ? "bg-sky" : "bg-violet-2")} />
+              <span className={clsx("size-2.5 shrink-0 rounded-full", remote ? "bg-info" : "bg-accent-fg")} />
               <span className="truncate">{c}</span>
-              {tracking === c && <span className="ml-auto shrink-0 rounded border border-dashed border-line-strong px-1 font-mono text-[9px] text-fg-3">origin/main</span>}
+              {tracking === c && <span className="ml-auto shrink-0 rounded border border-dashed border-line-strong px-1 font-mono text-[11px] text-fg-3">origin/main</span>}
             </motion.li>
           ))}
         </AnimatePresence>

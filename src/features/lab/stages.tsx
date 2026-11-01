@@ -8,7 +8,7 @@ import { ancestors, headCommit, shortId, status, type Commit, type FileMap, type
 
 interface Chip {
   path: string;
-  tone: "coral" | "amber" | "mint" | "violet" | "sky";
+  tone: "bad" | "warn" | "ok" | "accent" | "info";
   note: string;
   content?: string;
 }
@@ -28,15 +28,15 @@ function zones(world: World) {
   let remoteCommit: Commit | null = null;
   let unpushed = 0;
   if (!repo) {
-    for (const p of Object.keys(world.workdir).sort()) work.push({ path: p, tone: "sky", note: "not tracked — no repository", content: world.workdir[p] });
+    for (const p of Object.keys(world.workdir).sort()) work.push({ path: p, tone: "info", note: "not tracked — no repository", content: world.workdir[p] });
     return { work, stage, local, remote, localCommit, remoteCommit, unpushed, hasRemote: false };
   }
   const st = status(world);
   for (const e of st) {
-    if (e.conflicted) work.push({ path: e.path, tone: "coral", note: "conflict", content: world.workdir[e.path] });
-    else if (e.untracked) work.push({ path: e.path, tone: "coral", note: "new", content: world.workdir[e.path] });
-    else if (e.unstaged) work.push({ path: e.path, tone: "amber", note: e.unstaged, content: world.workdir[e.path] });
-    if (e.staged && !e.conflicted) stage.push({ path: e.path, tone: "mint", note: e.staged === "added" ? "new" : e.staged, content: repo.index[e.path] });
+    if (e.conflicted) work.push({ path: e.path, tone: "bad", note: "conflict", content: world.workdir[e.path] });
+    else if (e.untracked) work.push({ path: e.path, tone: "bad", note: "new", content: world.workdir[e.path] });
+    else if (e.unstaged) work.push({ path: e.path, tone: "warn", note: e.unstaged, content: world.workdir[e.path] });
+    if (e.staged && !e.conflicted) stage.push({ path: e.path, tone: "ok", note: e.staged === "added" ? "new" : e.staged, content: repo.index[e.path] });
   }
   localCommit = headCommit(repo);
   const upstreamRef = repo.head.kind === "branch" ? repo.upstream[repo.head.name] : undefined;
@@ -57,22 +57,22 @@ function zones(world: World) {
       for (const p of changedBetween(parent, c.tree)) paths.add(p);
     }
     for (const p of [...paths].sort())
-      if (!taken.has(p)) local.push({ path: p, tone: "violet", note: localCommit.tree[p] === undefined ? "deleted" : "committed", content: localCommit.tree[p] });
+      if (!taken.has(p)) local.push({ path: p, tone: "accent", note: localCommit.tree[p] === undefined ? "deleted" : "committed", content: localCommit.tree[p] });
   }
   if (remoteCommit) {
     const parent = remoteCommit.parents[0] ? repo.commits[remoteCommit.parents[0]]?.tree ?? {} : {};
     const takenAll = new Set([...taken, ...local.map((c) => c.path)]);
-    for (const p of changedBetween(parent, remoteCommit.tree)) if (!takenAll.has(p)) remote.push({ path: p, tone: "sky", note: "on GitHub", content: remoteCommit.tree[p] });
+    for (const p of changedBetween(parent, remoteCommit.tree)) if (!takenAll.has(p)) remote.push({ path: p, tone: "info", note: "on GitHub", content: remoteCommit.tree[p] });
   }
   return { work, stage, local, remote, localCommit, remoteCommit, unpushed, hasRemote };
 }
 
 const TONE: Record<Chip["tone"], string> = {
-  coral: "border-coral/40 bg-coral-soft text-coral",
-  amber: "border-amber/40 bg-amber-soft text-amber",
-  mint: "border-mint/40 bg-mint-soft text-mint",
-  violet: "border-violet/40 bg-violet-soft text-violet-2",
-  sky: "border-sky/40 bg-[color-mix(in_oklab,var(--sky)_14%,transparent)] text-sky",
+  bad: "border-bad/40 bg-bad-soft text-bad",
+  warn: "border-warn/40 bg-warn-soft text-warn",
+  ok: "border-ok/40 bg-ok-soft text-ok",
+  accent: "border-accent/40 bg-accent-soft text-accent-fg",
+  info: "border-info/40 bg-info-soft text-info",
 };
 
 export function StagesVisualizer({ world, showRemote = true, className }: { world: World; showRemote?: boolean; className?: string }) {
@@ -123,7 +123,7 @@ export function StagesVisualizer({ world, showRemote = true, className }: { worl
       <LayoutGroup id={group}>
         <div className={clsx("grid gap-2", showRemote ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3")}>
           {cols.map((col) => (
-            <div key={col.id} className="relative flex min-h-36 min-w-0 flex-col rounded-2xl border border-line bg-surface-2/60 p-2.5">
+            <div key={col.id} className="relative flex min-h-36 min-w-0 flex-col rounded-lg border border-line bg-surface-2/60 p-2.5">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-fg-2">
                 <span className="text-fg-3">{col.icon}</span>
                 <span className="truncate">{col.title}</span>
@@ -144,13 +144,13 @@ export function StagesVisualizer({ world, showRemote = true, className }: { worl
                     >
                       <FileText className="size-3.5 shrink-0" aria-hidden />
                       <span className="min-w-0 truncate font-mono">{c.path}</span>
-                      <span className="ml-auto shrink-0 text-[10px] opacity-80">{c.note}</span>
+                      <span className="ml-auto shrink-0 text-[11px] opacity-80">{c.note}</span>
                     </motion.button>
                   ))}
                 </AnimatePresence>
                 {!col.chips.length && <p className="my-auto text-center text-[11px] text-fg-3">{col.empty}</p>}
               </div>
-              {col.foot && <p className="mt-2 truncate font-mono text-[10px] text-fg-3">{col.foot}</p>}
+              {col.foot && <p className="mt-2 truncate font-mono text-[11px] text-fg-3">{col.foot}</p>}
               {col.arrow && (
                 <span className="pointer-events-none absolute top-1/2 -right-2 z-[1] hidden -translate-y-1/2 sm:block" aria-hidden>
                   <span className="grid size-4 place-items-center rounded-full border border-line bg-surface text-fg-3">
@@ -162,7 +162,7 @@ export function StagesVisualizer({ world, showRemote = true, className }: { worl
           ))}
         </div>
       </LayoutGroup>
-      <div className="mt-1.5 hidden justify-around font-mono text-[10px] text-fg-3 sm:flex" aria-hidden>
+      <div className="mt-1.5 hidden justify-around font-mono text-[11px] text-fg-3 sm:flex" aria-hidden>
         {cols.slice(0, -1).map((c) => (
           <span key={c.id}>{c.arrow} →</span>
         ))}
@@ -173,10 +173,10 @@ export function StagesVisualizer({ world, showRemote = true, className }: { worl
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 6 }}
-            className="absolute inset-x-0 bottom-0 z-10 max-h-[80%] overflow-auto rounded-2xl border border-line bg-elevated p-3 shadow-[var(--shadow)]"
+            className="absolute inset-x-0 bottom-0 z-10 max-h-[80%] overflow-auto rounded-lg border border-line bg-elevated p-3 shadow-[var(--shadow)]"
           >
             <div className="flex items-center gap-2">
-              <PackageCheck className="size-4 text-violet-2" />
+              <PackageCheck className="size-4 text-accent-fg" />
               <p className="text-xs">
                 <span className="font-mono font-medium">{inspect.chip.path}</span>
                 <span className="text-fg-3"> in {inspect.zone}</span>
