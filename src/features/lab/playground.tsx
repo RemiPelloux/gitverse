@@ -54,6 +54,25 @@ function PlaygroundRuntime() {
 
   useEffect(() => autosavePlayground(store, () => sandboxRef.current, (ok) => setSaveState(ok ? "saved" : "failed")), [store]);
 
+  // A shared link (#s=…) can arrive after the first render (client-side navigation) or change while
+  // the page is open: load it whenever it appears.
+  useEffect(() => {
+    let lastHash = "";
+    const apply = () => {
+      if (window.location.hash === lastHash) return;
+      lastHash = window.location.hash;
+      const shared = initialFromHash();
+      if (shared && JSON.stringify(shared) !== JSON.stringify(store.getState().world)) store.getState().reset(shared, "Shared link");
+    };
+    apply();
+    const id = window.setTimeout(apply, 0);
+    window.addEventListener("hashchange", apply);
+    return () => {
+      window.clearTimeout(id);
+      window.removeEventListener("hashchange", apply);
+    };
+  }, [store]);
+
   return (
     <LabProvider store={store}>
       <div className="flex h-dvh flex-col">
@@ -141,7 +160,8 @@ function Toolbar({
   }, [api, cursor, history.length]);
 
   const share = async () => {
-    const url = `${window.location.origin}/playground#s=${serializeWorld(api.world)}`;
+    // origin + current path keeps any deploy base path (e.g. GitHub Pages /gitverse/playground/)
+    const url = `${window.location.origin}${window.location.pathname}#s=${serializeWorld(api.world)}`;
     try {
       await navigator.clipboard.writeText(url);
     } catch {

@@ -2,11 +2,21 @@
 
 **Learn Git by playing with it.** A beginner-first, gamified web app. Learners type real Git commands into a safe simulated terminal and watch their repository's history grow, branch and merge in real time.
 
+**Live:** https://remipelloux.github.io/gitverse/
+
 ```bash
 npm install
 npm run dev        # http://localhost:3000
 npm test           # engine + curriculum tests (Vitest)
 npm run e2e        # Playwright: desktop + phone journeys (builds required: npm run build)
+```
+
+## Deploying
+
+Every push to `master` runs `.github/workflows/pages.yml`: unit tests, then a static build (`STATIC_EXPORT=1 BASE_PATH=/<repo>`) deployed to GitHub Pages. Gitverse runs entirely in the browser, so the static site is the whole app. To try the static build locally:
+
+```bash
+STATIC_EXPORT=1 BASE_PATH=/gitverse npx next build   # writes out/
 ```
 
 ## Architecture

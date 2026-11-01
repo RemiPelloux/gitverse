@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import { ALL_LESSONS, getLesson } from "@/features/curriculum";
 import { LessonPlayer } from "@/features/lesson/lesson-player";
 
+/** Every lesson is known at build time (required for the static GitHub Pages build). */
+export const dynamicParams = false;
+
 export function generateStaticParams() {
   return ALL_LESSONS.map((l) => ({ lessonId: l.id }));
 }

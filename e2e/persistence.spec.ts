@@ -38,3 +38,11 @@ test("an unfinished lesson resumes with its terminal after a reload", async ({ p
   await expect(page.getByText("Initialized empty Git repository")).toBeVisible();
   await expect(page.getByRole("status").getByText("Nice!")).toBeVisible();
 });
+
+test("a shared playground link opened from inside the app loads the shared repository", async ({ page }) => {
+  await page.goto("/commands");
+  await page.getByRole("link", { name: /try it yourself in the playground/i }).click();
+  await expect(page).toHaveURL(/playground\/?#s=/);
+  await expect(page.getByRole("button", { name: /Commit [0-9a-f]{7}: First commit \(HEAD\)/ })).toBeVisible();
+  await expect(page.getByText("hello.txt").first()).toBeVisible();
+});
