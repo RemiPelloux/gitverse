@@ -1,0 +1,196 @@
+"use client";
+
+import { clsx } from "clsx";
+import { AnimatePresence, LayoutGroup, motion } from "motion/react";
+import { useId, useMemo, useState } from "react";
+import { ArrowRight, Cloud, FileText, FolderOpen, Inbox, Laptop, PackageCheck, X } from "lucide-react";
+import { ancestors, headCommit, shortId, status, type Commit, type FileMap, type World } from "@/engine";
+
+interface Chip {
+  path: string;
+  tone: "coral" | "amber" | "mint" | "violet" | "sky";
+  note: string;
+  content?: string;
+}
+
+function changedBetween(a: FileMap, b: FileMap) {
+  return [...new Set([...Object.keys(a), ...Object.keys(b)])].filter((p) => a[p] !== b[p]).sort();
+}
+
+/** Derive what to show in each conceptual zone from the canonical world. */
+function zones(world: World) {
+  const repo = world.repo;
+  const work: Chip[] = [];
+  const stage: Chip[] = [];
+  const local: Chip[] = [];
+  const remote: Chip[] = [];
+  let localCommit: Commit | null = null;
+  let remoteCommit: Commit | null = null;
+  let unpushed = 0;
+  if (!repo) {
+    for (const p of Object.keys(world.workdir).sort()) work.push({ path: p, tone: "sky", note: "not tracked — no repository", content: world.workdir[p] });
+    return { work, stage, local, remote, localCommit, remoteCommit, unpushed, hasRemote: false };
+  }
+  const st = status(world);
+  for (const e of st) {
+    if (e.conflicted) work.push({ path: e.path, tone: "coral", note: "conflict", content: world.workdir[e.path] });
+    else if (e.untracked) work.push({ path: e.path, tone: "coral", note: "new", content: world.workdir[e.path] });
+    else if (e.unstaged) work.push({ path: e.path, tone: "amber", note: e.unstaged, content: world.workdir[e.path] });
+    if (e.staged && !e.conflicted) stage.push({ path: e.path, tone: "mint", note: e.staged === "added" ? "new" : e.staged, content: repo.index[e.path] });
+  }
+  localCommit = headCommit(repo);
+  const upstreamRef = repo.head.kind === "branch" ? repo.upstream[repo.head.name] : undefined;
+  const remoteId = upstreamRef ? repo.remoteRefs[upstreamRef] : Object.values(repo.remoteRefs)[0];
+  const hasRemote = Object.keys(repo.remotes).length > 0;
+  remoteCommit = remoteId ? repo.commits[remoteId] : null;
+  const taken = new Set([...work, ...stage].map((c) => c.path));
+  if (localCommit) {
+    const remoteAnc = remoteId ? ancestors(repo, remoteId) : new Set<string>();
+    const unpushedIds = [...ancestors(repo, localCommit.id)].filter((id) => !remoteAnc.has(id));
+    unpushed = hasRemote ? unpushedIds.length : 0;
+    // files changed by commits not yet on the remote (or by the last commit)
+    const paths = new Set<string>();
+    const ids = hasRemote ? unpushedIds : [localCommit.id];
+    for (const id of ids) {
+      const c = repo.commits[id];
+      const parent = c.parents[0] ? repo.commits[c.parents[0]].tree : {};
+      for (const p of changedBetween(parent, c.tree)) paths.add(p);
+    }
+    for (const p of [...paths].sort())
+      if (!taken.has(p)) local.push({ path: p, tone: "violet", note: localCommit.tree[p] === undefined ? "deleted" : "committed", content: localCommit.tree[p] });
+  }
+  if (remoteCommit) {
+    const parent = remoteCommit.parents[0] ? repo.commits[remoteCommit.parents[0]]?.tree ?? {} : {};
+    const takenAll = new Set([...taken, ...local.map((c) => c.path)]);
+    for (const p of changedBetween(parent, remoteCommit.tree)) if (!takenAll.has(p)) remote.push({ path: p, tone: "sky", note: "on GitHub", content: remoteCommit.tree[p] });
+  }
+  return { work, stage, local, remote, localCommit, remoteCommit, unpushed, hasRemote };
+}
+
+const TONE: Record<Chip["tone"], string> = {
+  coral: "border-coral/40 bg-coral-soft text-coral",
+  amber: "border-amber/40 bg-amber-soft text-amber",
+  mint: "border-mint/40 bg-mint-soft text-mint",
+  violet: "border-violet/40 bg-violet-soft text-violet-2",
+  sky: "border-sky/40 bg-[color-mix(in_oklab,var(--sky)_14%,transparent)] text-sky",
+};
+
+export function StagesVisualizer({ world, showRemote = true, className }: { world: World; showRemote?: boolean; className?: string }) {
+  const z = useMemo(() => zones(world), [world]);
+  const [inspect, setInspect] = useState<{ zone: string; chip: Chip } | null>(null);
+  const group = useId();
+  const cols: Array<{ id: string; title: string; icon: React.ReactNode; chips: Chip[]; empty: string; foot?: string; arrow?: string }> = [
+    {
+      id: "work",
+      title: "Working directory",
+      icon: <FolderOpen className="size-4" />,
+      chips: z.work,
+      empty: world.repo ? "No unsaved changes" : "Empty folder",
+      foot: `${Object.keys(world.workdir).length} file${Object.keys(world.workdir).length === 1 ? "" : "s"} on disk`,
+      arrow: "git add",
+    },
+    {
+      id: "stage",
+      title: "Staging area",
+      icon: <Inbox className="size-4" />,
+      chips: z.stage,
+      empty: world.repo ? "Nothing staged" : "Needs git init",
+      foot: "the next snapshot",
+      arrow: "git commit",
+    },
+    {
+      id: "local",
+      title: "Local repository",
+      icon: <Laptop className="size-4" />,
+      chips: z.local,
+      empty: z.localCommit ? "Up to date" : "No commits yet",
+      foot: z.localCommit ? `HEAD · ${shortId(z.localCommit.id)}${z.unpushed ? ` · ${z.unpushed} not pushed` : ""}` : undefined,
+      arrow: showRemote ? "git push" : undefined,
+    },
+  ];
+  if (showRemote)
+    cols.push({
+      id: "remote",
+      title: "Remote (GitHub)",
+      icon: <Cloud className="size-4" />,
+      chips: z.remote,
+      empty: z.hasRemote ? (z.remoteCommit ? "In sync" : "Nothing pushed yet") : "No remote linked",
+      foot: z.remoteCommit ? `origin · ${shortId(z.remoteCommit.id)}` : undefined,
+    });
+
+  return (
+    <div className={clsx("relative", className)}>
+      <LayoutGroup id={group}>
+        <div className={clsx("grid gap-2", showRemote ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3")}>
+          {cols.map((col) => (
+            <div key={col.id} className="relative flex min-h-36 min-w-0 flex-col rounded-2xl border border-line bg-surface-2/60 p-2.5">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-fg-2">
+                <span className="text-fg-3">{col.icon}</span>
+                <span className="truncate">{col.title}</span>
+              </div>
+              <div className="mt-2 flex flex-1 flex-col gap-1.5">
+                <AnimatePresence mode="popLayout">
+                  {col.chips.map((c) => (
+                    <motion.button
+                      key={c.path}
+                      layoutId={`chip-${c.path}`}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 28 }}
+                      onClick={() => setInspect({ zone: col.title, chip: c })}
+                      className={clsx("flex min-w-0 items-center gap-1.5 rounded-lg border px-2 py-1 text-left text-xs", TONE[c.tone])}
+                      title={`Inspect ${c.path} in ${col.title}`}
+                    >
+                      <FileText className="size-3.5 shrink-0" aria-hidden />
+                      <span className="min-w-0 truncate font-mono">{c.path}</span>
+                      <span className="ml-auto shrink-0 text-[10px] opacity-80">{c.note}</span>
+                    </motion.button>
+                  ))}
+                </AnimatePresence>
+                {!col.chips.length && <p className="my-auto text-center text-[11px] text-fg-3">{col.empty}</p>}
+              </div>
+              {col.foot && <p className="mt-2 truncate font-mono text-[10px] text-fg-3">{col.foot}</p>}
+              {col.arrow && (
+                <span className="pointer-events-none absolute top-1/2 -right-2 z-[1] hidden -translate-y-1/2 sm:block" aria-hidden>
+                  <span className="grid size-4 place-items-center rounded-full border border-line bg-surface text-fg-3">
+                    <ArrowRight className="size-2.5" />
+                  </span>
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      </LayoutGroup>
+      <div className="mt-1.5 hidden justify-around font-mono text-[10px] text-fg-3 sm:flex" aria-hidden>
+        {cols.slice(0, -1).map((c) => (
+          <span key={c.id}>{c.arrow} →</span>
+        ))}
+      </div>
+      <AnimatePresence>
+        {inspect && (
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 6 }}
+            className="absolute inset-x-0 bottom-0 z-10 max-h-[80%] overflow-auto rounded-2xl border border-line bg-elevated p-3 shadow-[var(--shadow)]"
+          >
+            <div className="flex items-center gap-2">
+              <PackageCheck className="size-4 text-violet-2" />
+              <p className="text-xs">
+                <span className="font-mono font-medium">{inspect.chip.path}</span>
+                <span className="text-fg-3"> in {inspect.zone}</span>
+              </p>
+              <button className="ml-auto rounded-md p-1 text-fg-3 hover:text-fg" onClick={() => setInspect(null)} aria-label="Close inspector">
+                <X className="size-3.5" />
+              </button>
+            </div>
+            <pre className="mt-2 rounded-lg bg-surface-2 p-2 font-mono text-[12px] whitespace-pre-wrap text-fg-2">
+              {inspect.chip.content === undefined ? "(file deleted in this version)" : inspect.chip.content || "(empty file)"}
+            </pre>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
