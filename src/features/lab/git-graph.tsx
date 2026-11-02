@@ -228,7 +228,16 @@ export function GitGraph({ world, events = [], eventKey = 0, ghosts = [], select
                   />
                   <path d={`M ${nx(head)} ${ny(head)} L ${x} ${ny(head)}`} className="dash-flow" stroke="var(--bad)" strokeWidth={2.5} strokeDasharray="6 6" />
                   <circle cx={x} cy={ny(head)} r={R} fill="var(--bad-soft)" stroke="var(--bad)" strokeWidth={2} strokeDasharray="3 3" />
-                  <text x={x} y={ny(head) + R + 18} textAnchor="middle" className="fill-bad font-mono text-[11px] font-medium">
+                  <text
+                    x={x + R + 8}
+                    y={ny(head) + 4}
+                    textAnchor="start"
+                    className="fill-bad font-mono text-[11px] font-medium"
+                    stroke="var(--bg)"
+                    strokeWidth={5}
+                    strokeLinejoin="round"
+                    style={{ paintOrder: "stroke" }}
+                  >
                     {conflict.conflicts.length ? t("lab.graph.conflict", { kind: conflict.kind }) : t("lab.graph.ready", { kind: conflict.kind })}
                   </text>
                 </g>

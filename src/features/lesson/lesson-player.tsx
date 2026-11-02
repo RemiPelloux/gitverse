@@ -168,6 +168,9 @@ function LessonRuntime({ lesson }: { lesson: Lesson }) {
           >
             {i < step ? <Check className="size-3" /> : <Circle className={clsx("size-2", i === step && "fill-current")} />}
             {stepLabel(t, s.kind)}
+            {lesson.steps.filter((x) => x.kind === s.kind).length > 1 && (
+              <span className="tabular-nums opacity-70">{lesson.steps.slice(0, i + 1).filter((x) => x.kind === s.kind).length}</span>
+            )}
           </button>
         ))}
       </nav>
@@ -490,7 +493,7 @@ function TryView({
         )}
       </AnimatePresence>
       <div className="mt-auto pt-6">
-        <Button size="lg" className="w-full" disabled={!done} onClick={onNext}>
+        <Button size="lg" variant={done ? "primary" : "secondary"} className="w-full disabled:opacity-100 disabled:text-fg-3 disabled:shadow-none" disabled={!done} onClick={onNext}>
           {done ? (
             <>
               {t("common.continue")} <ArrowRight className="size-4" />
@@ -593,7 +596,7 @@ function ChallengeView({
         </div>
       )}
       <div className="mt-auto pt-6">
-        <Button size="lg" variant={allDone ? "ok" : "primary"} className="w-full" disabled={!allDone} onClick={onNext}>
+        <Button size="lg" variant={allDone ? "ok" : "secondary"} className="w-full disabled:opacity-100 disabled:text-fg-3 disabled:shadow-none" disabled={!allDone} onClick={onNext}>
           {allDone ? (
             <>
               {t("lesson.complete")} <ChevronRight className="size-4" />

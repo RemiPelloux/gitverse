@@ -43,13 +43,17 @@ export function AppProviders({ children }: { children: ReactNode }) {
   );
 }
 
+/** Compact one-line notices just under the header: they never cover the terminal, editor or guide. */
 function Toasts() {
   const toasts = useProgress((s) => s.toasts);
   const dismiss = useProgress((s) => s.dismissToast);
-  // Only the two most recent are shown; older ones are dropped quietly.
+  // Only the most recent are shown (two on larger screens, one on phones).
   const visible = toasts.slice(-2);
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-16 z-[100] flex flex-col items-center gap-2 px-4 md:items-end" aria-live="polite">
+    <div
+      className="pointer-events-none fixed inset-x-0 top-[62px] z-[100] flex flex-col items-center gap-1.5 px-4 max-md:[&>*:not(:last-child)]:hidden"
+      aria-live="polite"
+    >
       <AnimatePresence initial={false} mode="popLayout">
         {visible.map((t) => (
           <ToastItem key={t.id} toast={t} onDismiss={() => dismiss(t.id)} />
@@ -62,46 +66,43 @@ function Toasts() {
 function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }) {
   const t = useT();
   useEffect(() => {
-    const timer = setTimeout(onDismiss, toast.kind === "xp" ? 2200 : 3800);
+    const timer = setTimeout(onDismiss, toast.kind === "xp" ? 2200 : 3600);
     return () => clearTimeout(timer);
   }, [toast.kind, onDismiss]);
   const ach = toast.kind === "achievement" ? ACHIEVEMENTS.find((a) => a.id === toast.subject) : null;
   let title = "";
   let detail = "";
-  if (toast.kind === "xp") {
-    title = t("toast.discovered", { cmd: toast.subject ?? "" });
-    detail = t("common.plusXp", { n: toast.xp ?? 0 });
-  } else if (toast.kind === "achievement" && ach) {
+  if (toast.kind === "xp") title = t("toast.discovered", { cmd: toast.subject ?? "" });
+  else if (toast.kind === "achievement" && ach) {
     title = t("toast.badge", { title: t(`badges.${ach.id}.title` as MessageKey) });
     detail = t(`badges.${ach.id}.description` as MessageKey);
-  } else if (toast.kind === "quest") {
-    title = t("toast.quest", { title: t(`quests.${toast.subject}` as MessageKey) });
-    detail = t("common.plusXp", { n: toast.xp ?? 0 });
-  } else if (toast.kind === "goal") {
+  } else if (toast.kind === "quest") title = t("toast.quest", { title: t(`quests.${toast.subject}` as MessageKey) });
+  else if (toast.kind === "goal") {
     title = t("toast.goal");
     detail = t("toast.goalDetail", { xp: toast.xp ?? 0 });
   }
-  const compact = toast.kind === "xp";
+  const xpChip = toast.kind === "xp" || toast.kind === "quest" ? t("common.plusXp", { n: toast.xp ?? 0 }) : null;
   const tone =
     toast.kind === "achievement" ? "bg-warn-soft text-warn" : toast.kind === "quest" || toast.kind === "goal" ? "bg-ok-soft text-ok" : "bg-accent-soft text-accent-fg";
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: -10, scale: 0.94 }}
+      initial={{ opacity: 0, y: -8, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.15 } }}
+      exit={{ opacity: 0, y: -6, transition: { duration: 0.15 } }}
       transition={{ type: "spring", stiffness: 420, damping: 28 }}
-      className={`pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-xl border border-line bg-elevated shadow-[var(--shadow-lg)] ${compact ? "p-2 pr-2" : "p-3 pr-2"}`}
+      className="pointer-events-auto flex max-w-[min(30rem,100%)] items-center gap-2 rounded-full border border-line bg-elevated py-1 pr-1 pl-1 shadow-[var(--shadow-lg)]"
       role="status"
+      title={detail || undefined}
     >
       <motion.span
         initial={{ rotate: -20, scale: 0.6 }}
         animate={{ rotate: 0, scale: 1 }}
         transition={{ type: "spring", stiffness: 500, damping: 14, delay: 0.05 }}
-        className={`grid shrink-0 place-items-center rounded-lg ${compact ? "size-7" : "size-10"} ${tone}`}
+        className={`grid size-7 shrink-0 place-items-center rounded-full ${tone}`}
       >
         {ach ? (
-          <DynamicIcon name={ach.icon} className="size-5" />
+          <DynamicIcon name={ach.icon} className="size-4" />
         ) : toast.kind === "quest" || toast.kind === "goal" ? (
           <Target className="size-4" />
         ) : toast.kind === "achievement" ? (
@@ -110,12 +111,10 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
           <GitCommitHorizontal className="size-4" />
         )}
       </motion.span>
-      <div className="min-w-0 flex-1">
-        <p className={compact ? "truncate text-xs font-medium" : "text-sm font-semibold"}>{title}</p>
-        <p className="truncate text-xs text-fg-2">{detail}</p>
-      </div>
-      <button className="rounded-lg p-1 text-fg-3 hover:text-fg pointer-coarse:p-2.5" onClick={onDismiss} aria-label={t("common.dismiss")}>
-        <X className="size-4" />
+      <p className="min-w-0 truncate text-[13px] font-medium">{title}</p>
+      {xpChip && <span className="shrink-0 rounded-full bg-warn-soft px-2 py-0.5 text-[11px] font-bold text-warn">{xpChip}</span>}
+      <button className="grid size-6 shrink-0 place-items-center rounded-full text-fg-3 hover:bg-surface-2 hover:text-fg pointer-coarse:size-9" onClick={onDismiss} aria-label={t("common.dismiss")}>
+        <X className="size-3.5" />
       </button>
     </motion.div>
   );

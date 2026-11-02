@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { ArrowLeft, Check, ChevronDown, HardDrive, History, Link2, Maximize, Minimize, Redo2, RotateCcw, Undo2 } from "lucide-react";
 import { deserializeWorld, serializeWorld } from "@/engine";
+import { withLearner } from "@/features/progress/learner";
 import { useProgress } from "@/features/progress/store";
 import { Logo, useHydrated } from "@/components/ui/misc";
 import { GitGraph } from "./git-graph";
@@ -37,7 +38,7 @@ function PlaygroundRuntime() {
     if (shared) return { world: shared, sandboxId: "website", terminal: undefined, resumed: false };
     const saved = loadPlayground();
     if (saved) return { world: saved.world, sandboxId: saved.sandboxId, terminal: saved, resumed: true };
-    return { world: buildSandbox("website"), sandboxId: "website", terminal: undefined, resumed: false };
+    return { world: withLearner(buildSandbox("website"), useProgress.getState().name), sandboxId: "website", terminal: undefined, resumed: false };
   });
   const [sandboxId, setSandboxId] = useState(boot.sandboxId);
   const sandboxRef = useRef(boot.sandboxId);
@@ -83,7 +84,7 @@ function PlaygroundRuntime() {
           onSandbox={(id) => {
             setSandboxId(id);
             sandboxRef.current = id;
-            store.getState().reset(buildSandbox(id), t("lab.playground.sandboxStart"));
+            store.getState().reset(withLearner(buildSandbox(id), useProgress.getState().name), t("lab.playground.sandboxStart"));
             history.replaceState(null, "", window.location.pathname);
           }}
           full={full}
