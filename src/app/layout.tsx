@@ -30,7 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {/* Apply the saved theme before paint to avoid a flash. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var s=JSON.parse(localStorage.getItem("gitverse-progress")||"{}").state;if(s&&s.settings){document.documentElement.dataset.theme=s.settings.theme||"light";if(s.settings.motion==="reduced")document.documentElement.dataset.motion="reduced"}}catch(e){}`,
+            __html: `try{var s=JSON.parse(localStorage.getItem("gitverse-progress")||"{}").state;if(s&&s.settings){document.documentElement.dataset.theme=s.settings.theme||"light";if(s.settings.locale)document.documentElement.lang=s.settings.locale;if(s.settings.motion==="reduced")document.documentElement.dataset.motion="reduced"}}catch(e){}`,
           }}
         />
       </head>

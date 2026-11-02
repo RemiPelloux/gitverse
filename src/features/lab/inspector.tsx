@@ -4,19 +4,21 @@ import { clsx } from "clsx";
 import { Cloud, GitBranch, GitCommitHorizontal, GitMerge, MousePointerClick, Tag } from "lucide-react";
 import { ancestors, shortId, type World } from "@/engine";
 import { DiffBlock } from "./editor";
+import { useT } from "@/i18n";
 import { useLab } from "./store";
 
 export function CommitInspector() {
   const world = useLab((s) => s.world);
   const selected = useLab((s) => s.selectedCommit);
   const select = useLab((s) => s.selectCommit);
+  const t = useT();
   const repo = world.repo;
   const c = selected && repo ? repo.commits[selected] : null;
   if (!c || !repo)
     return (
       <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center text-xs text-fg-3">
         <MousePointerClick className="size-6" />
-        Click a commit in the graph to inspect it.
+        {t("lab.inspector.clickCommit")}
       </div>
     );
   const parent = c.parents[0] ? repo.commits[c.parents[0]] : null;
@@ -36,9 +38,9 @@ export function CommitInspector() {
         </div>
       </div>
       <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-xs">
-        <dt className="text-fg-3">Author</dt>
+        <dt className="text-fg-3">{t("lab.inspector.author")}</dt>
         <dd>{c.author}</dd>
-        <dt className="text-fg-3">Parents</dt>
+        <dt className="text-fg-3">{t("lab.inspector.parents")}</dt>
         <dd className="flex flex-wrap gap-1">
           {c.parents.length ? (
             c.parents.map((p) => (
@@ -47,10 +49,10 @@ export function CommitInspector() {
               </button>
             ))
           ) : (
-            <span className="text-fg-3">none — the first commit</span>
+            <span className="text-fg-3">{t("lab.inspector.noParent")}</span>
           )}
         </dd>
-        <dt className="text-fg-3">On branches</dt>
+        <dt className="text-fg-3">{t("lab.inspector.onBranches")}</dt>
         <dd className="flex flex-wrap gap-1">
           {onBranches.length ? (
             onBranches.map((b) => (
@@ -60,13 +62,13 @@ export function CommitInspector() {
               </span>
             ))
           ) : (
-            <span className="text-warn">no branch (unreachable — find it in git reflog)</span>
+            <span className="text-warn">{t("lab.inspector.noBranch")}</span>
           )}
         </dd>
       </dl>
       {c.message.includes("\n") && <p className="mt-3 rounded-lg bg-surface-2 p-2 text-xs whitespace-pre-wrap text-fg-2">{c.message}</p>}
       <h4 className="mt-4 mb-2 text-[11px] font-semibold text-fg-3 ">
-        {c.parents.length > 1 ? "Snapshot files" : `Changed files (${files.length})`}
+        {c.parents.length > 1 ? t("lab.inspector.snapshotFiles") : t("lab.inspector.changedFiles", { n: files.length })}
       </h4>
       <div className="space-y-3">
         {c.parents.length > 1 ? (
@@ -96,20 +98,25 @@ export function RemotePanel() {
 export function RemoteView({ world }: { world: World }) {
   const repo = world.repo;
   const remotes = repo ? Object.entries(repo.remotes) : [];
-  if (!remotes.length)
+  const t = useT();
+  if (!remotes.length) {
+    const [before, after] = t("lab.inspector.noRemote").split("{cmd}");
     return (
       <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center text-xs text-fg-3">
         <Cloud className="size-6" />
-        No remote connected. Link one with <code className="font-mono text-fg-2">git remote add origin &lt;url&gt;</code>.
+        {before}
+        <code className="font-mono text-fg-2">git remote add origin &lt;url&gt;</code>
+        {after}
         {Object.keys(world.hosted).length > 0 && (
-          <span className="mt-2 rounded-lg bg-surface-2 px-2 py-1 font-mono text-[11px] text-fg-2">Available: {Object.keys(world.hosted).join(", ")}</span>
+          <span className="mt-2 rounded-lg bg-surface-2 px-2 py-1 font-mono text-[11px] text-fg-2">{t("lab.inspector.available", { list: Object.keys(world.hosted).join(", ") })}</span>
         )}
       </div>
     );
+  }
   return (
     <div className="scrollbar-thin h-full space-y-4 overflow-y-auto p-3">
       <p className="rounded-lg border border-dashed border-line px-2 py-1.5 text-[11px] text-fg-3">
-        Simulated GitHub — part of the learning environment. Nothing is sent over the internet.
+        {t("lab.inspector.simulated")}
       </p>
       {remotes.map(([name, url]) => {
         const host = world.hosted[url];
@@ -135,29 +142,29 @@ export function RemoteView({ world }: { world: World }) {
               </div>
             </header>
             <div className="px-3 py-2">
-              <p className="text-[11px] font-semibold text-fg-3 ">Branches on GitHub</p>
+              <p className="text-[11px] font-semibold text-fg-3 ">{t("lab.inspector.branchesOnGitHub")}</p>
               {Object.keys(host.branches).length ? (
                 <ul className="mt-1.5 space-y-1">
                   {Object.entries(host.branches).map(([b, id]) => {
                     const local = repo!.branches[b];
-                    const sync = !local ? "not local" : local === id ? "in sync" : ancestors(repo!, local).has(id) ? "you're ahead" : "behind / diverged";
+                    const sync = !local ? "notLocal" : local === id ? "inSync" : ancestors(repo!, local).has(id) ? "ahead" : "behind";
                     return (
                       <li key={b} className="flex items-center gap-2 text-xs">
                         <GitBranch className="size-3.5 text-fg-3" />
                         <span className="font-mono">{b}</span>
                         <span className="font-mono text-[11px] text-fg-3">{shortId(id)}</span>
-                        <span className={clsx("ml-auto rounded-md px-1.5 py-px text-[11px]", sync === "in sync" ? "bg-ok-soft text-ok" : "bg-warn-soft text-warn")}>{sync}</span>
+                        <span className={clsx("ml-auto rounded-md px-1.5 py-px text-[11px]", sync === "inSync" ? "bg-ok-soft text-ok" : "bg-warn-soft text-warn")}>{t(`lab.inspector.${sync}`)}</span>
                       </li>
                     );
                   })}
                 </ul>
               ) : (
-                <p className="mt-1 text-xs text-fg-3">Empty repository — push to publish your commits.</p>
+                <p className="mt-1 text-xs text-fg-3">{t("lab.inspector.emptyRepo")}</p>
               )}
             </div>
             {Object.keys(host.tags ?? {}).length > 0 && (
               <div className="border-t border-line px-3 py-2">
-                <p className="text-[11px] font-semibold text-fg-3">Tags on GitHub</p>
+                <p className="text-[11px] font-semibold text-fg-3">{t("lab.inspector.tagsOnGitHub")}</p>
                 <ul className="mt-1.5 flex flex-wrap gap-1.5">
                   {Object.entries(host.tags!).map(([t, id]) => (
                     <li key={t} className="flex items-center gap-1 rounded-md bg-warn-soft px-1.5 py-0.5 font-mono text-[11px] text-warn" title={shortId(id)}>
@@ -170,7 +177,7 @@ export function RemoteView({ world }: { world: World }) {
             )}
             {log.length > 0 && (
               <div className="border-t border-line px-3 py-2">
-                <p className="text-[11px] font-semibold text-fg-3 ">Commits on {host.defaultBranch}</p>
+                <p className="text-[11px] font-semibold text-fg-3 ">{t("lab.inspector.commitsOn", { branch: host.defaultBranch })}</p>
                 <ol className="mt-1.5 space-y-1.5">
                   {log.map((id) => {
                     const c = world.hostedCommits[id];

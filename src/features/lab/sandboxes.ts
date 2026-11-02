@@ -1,5 +1,6 @@
 import { emptyWorld, type World } from "@/engine";
 import { INDEX_HTML, README, Scenario, scenario, STYLE_CSS } from "@/features/curriculum/scenario";
+import type { MessageKey } from "@/i18n";
 
 export const HELLO_URL = "https://github.com/gitverse/hello-world.git";
 export const SANDBOX_URL = "https://github.com/you/sandbox.git";
@@ -22,12 +23,18 @@ export function withHosting(w: World): World {
   };
 }
 
-export const SANDBOXES: Array<{ id: string; title: string; description: string; build: () => World }> = [
-  { id: "empty", title: "Empty folder", description: "Start from nothing: git init, or git clone a repo.", build: () => withHosting(emptyWorld()) },
+export type SandboxId = "empty" | "website" | "branches" | "conflict" | "remote";
+
+/** Message keys for a sandbox's title and description (translate at render time). */
+export const sandboxText = (id: SandboxId) => ({
+  title: `lab.sandboxes.${id}.title` as const satisfies MessageKey,
+  description: `lab.sandboxes.${id}.description` as const satisfies MessageKey,
+});
+
+export const SANDBOXES: Array<{ id: SandboxId; build: () => World }> = [
+  { id: "empty", build: () => withHosting(emptyWorld()) },
   {
     id: "website",
-    title: "Starter website",
-    description: "A repository with a few commits.",
     build: () =>
       withHosting(
         scenario().run("git init").commit("Add README", { "README.md": README }).commit("Add home page", { "index.html": INDEX_HTML }).commit("Add styles", { "style.css": STYLE_CSS }).done(),
@@ -35,8 +42,6 @@ export const SANDBOXES: Array<{ id: string; title: string; description: string; 
   },
   {
     id: "branches",
-    title: "Diverged branches",
-    description: "main and two feature branches — try merge vs. rebase.",
     build: () =>
       withHosting(
         scenario()
@@ -54,8 +59,6 @@ export const SANDBOXES: Array<{ id: string; title: string; description: string; 
   },
   {
     id: "conflict",
-    title: "Merge conflict",
-    description: "Two branches edited the same line. Merge them and resolve.",
     build: () =>
       withHosting(
         scenario()
@@ -70,8 +73,6 @@ export const SANDBOXES: Array<{ id: string; title: string; description: string; 
   },
   {
     id: "remote",
-    title: "Connected to GitHub",
-    description: "Already pushed to origin. Try push, fetch and pull.",
     build: () => {
       const base = withHosting(emptyWorld());
       return new Scenario(base)

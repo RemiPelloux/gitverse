@@ -1,3 +1,6 @@
+import type { Locale } from "@/i18n/locale";
+import { CATEGORY_FR, COMMAND_DOCS_FR } from "./commands.fr";
+
 export type Risk = "safe" | "careful" | "destructive";
 
 export interface CommandDoc {
@@ -336,55 +339,131 @@ export const COMMAND_DOCS: CommandDoc[] = [
 
 export const docFor = (name: string) => COMMAND_DOCS.find((d) => d.name === name) ?? null;
 
+const localizedCache: Partial<Record<Locale, CommandDoc[]>> = {};
+
+/** COMMAND_DOCS with human-facing text in the given language. `category` stays the English key (see categoryLabel). */
+export function localizedDocs(locale: Locale): CommandDoc[] {
+  if (locale === "en") return COMMAND_DOCS;
+  const cached = localizedCache[locale];
+  if (cached) return cached;
+  const docs = COMMAND_DOCS.map((d): CommandDoc => {
+    const fr = COMMAND_DOCS_FR[d.name];
+    if (!fr) return d;
+    return {
+      ...d,
+      summary: fr.summary,
+      plain: fr.plain,
+      flags: d.flags.map((f, i) => ({ ...f, desc: fr.flags[i] ?? f.desc })),
+      riskNote: d.riskNote === undefined ? undefined : (fr.riskNote ?? d.riskNote),
+    };
+  });
+  localizedCache[locale] = docs;
+  return docs;
+}
+
+const localizedDocFor = (name: string, locale: Locale) => localizedDocs(locale).find((d) => d.name === name) ?? null;
+
+export function categoryLabel(cat: CommandDoc["category"], locale: Locale): string {
+  return locale === "fr" ? CATEGORY_FR[cat] : cat;
+}
+
+const lowerFirst = (s: string) => s.charAt(0).toLocaleLowerCase("fr") + s.slice(1);
+
+const TOKEN_TEXT = {
+  en: {
+    then: "then run the next command",
+    write: "write the text into a file",
+    append: "append the text to a file",
+    git: "the Git program",
+    subcommand: "git subcommand",
+    programs: { echo: "print some text", touch: "create an empty file", cat: "show a file", ls: "list files", rm: "delete a file", mv: "rename a file" } as Record<string, string>,
+    option: "an option",
+    value: "a value",
+    message: "your commit message",
+    text: "some text",
+    dot: "everything in this folder",
+    url: "the repository's web address",
+    origin: "the nickname of your GitHub repo",
+    head: "the commit you're on",
+    headRel: "a commit before HEAD",
+    file: "a file name",
+    branch: "a branch name",
+    commitId: "a commit ID",
+  },
+  fr: {
+    then: "puis lance la commande suivante",
+    write: "écrire le texte dans un fichier",
+    append: "ajouter le texte à la fin d'un fichier",
+    git: "le programme Git",
+    subcommand: "sous-commande git",
+    programs: { echo: "afficher du texte", touch: "créer un fichier vide", cat: "afficher un fichier", ls: "lister les fichiers", rm: "supprimer un fichier", mv: "renommer un fichier" } as Record<string, string>,
+    option: "une option",
+    value: "une valeur",
+    message: "ton message de commit",
+    text: "du texte",
+    dot: "tout ce qui est dans ce dossier",
+    url: "l'adresse web du dépôt",
+    origin: "le surnom de ton dépôt GitHub",
+    head: "le commit sur lequel tu es",
+    headRel: "un commit avant HEAD",
+    file: "un nom de fichier",
+    branch: "un nom de branche",
+    commitId: "un identifiant de commit",
+  },
+} satisfies Record<Locale, unknown>;
+
 /** Token-level explanation for the assisted terminal. */
-export function explainTokens(input: string): Array<{ text: string; meaning: string; kind: "program" | "command" | "flag" | "value" | "operator" }> {
+export function explainTokens(
+  input: string,
+  locale: Locale = "en",
+): Array<{ text: string; meaning: string; kind: "program" | "command" | "flag" | "value" | "operator" }> {
+  const T = TOKEN_TEXT[locale];
   const tokens = input.match(/"[^"]*"|'[^']*'|&&|>>|>|\S+/g) ?? [];
   const out: ReturnType<typeof explainTokens> = [];
   let sub: string | null = null;
   let prevFlag: string | null = null;
   for (const t of tokens) {
     if (t === "&&") {
-      out.push({ text: t, meaning: "then run the next command", kind: "operator" });
+      out.push({ text: t, meaning: T.then, kind: "operator" });
       sub = null;
       continue;
     }
     if (t === ">" || t === ">>") {
-      out.push({ text: t, meaning: t === ">" ? "write the text into a file" : "append the text to a file", kind: "operator" });
+      out.push({ text: t, meaning: t === ">" ? T.write : T.append, kind: "operator" });
       continue;
     }
     if (t === "git") {
-      out.push({ text: t, meaning: "the Git program", kind: "program" });
+      out.push({ text: t, meaning: T.git, kind: "program" });
       sub = "git";
       continue;
     }
     if (sub === "git") {
-      const d = docFor(t);
-      out.push({ text: t, meaning: d ? d.summary.toLowerCase() : "git subcommand", kind: "command" });
+      const d = localizedDocFor(t, locale);
+      out.push({ text: t, meaning: d ? (locale === "en" ? d.summary.toLowerCase() : lowerFirst(d.summary)) : T.subcommand, kind: "command" });
       sub = t;
       continue;
     }
     if (["echo", "touch", "cat", "ls", "rm", "mv"].includes(t) && !sub) {
-      const m: Record<string, string> = { echo: "print some text", touch: "create an empty file", cat: "show a file", ls: "list files", rm: "delete a file", mv: "rename a file" };
-      out.push({ text: t, meaning: m[t], kind: "program" });
+      out.push({ text: t, meaning: T.programs[t], kind: "program" });
       sub = t;
       continue;
     }
     if (t.startsWith("-")) {
-      const d = sub ? docFor(sub) : null;
+      const d = sub ? localizedDocFor(sub, locale) : null;
       const f = d?.flags.find((fl) => fl.flag.split(/[ ,]/)[0] === t || fl.flag.includes(t + " ") || fl.flag.startsWith(t));
-      out.push({ text: t, meaning: f?.desc ?? "an option", kind: "flag" });
+      out.push({ text: t, meaning: f?.desc ?? T.option, kind: "flag" });
       prevFlag = t;
       continue;
     }
-    let meaning = "a value";
-    if (/^["']/.test(t)) meaning = prevFlag === "-m" || prevFlag === "-am" ? "your commit message" : "some text";
-    else if (t === ".") meaning = "everything in this folder";
-    else if (/^https?:/.test(t)) meaning = "the repository's web address";
-    else if (t === "origin") meaning = "the nickname of your GitHub repo";
-    else if (/^HEAD/.test(t)) meaning = t === "HEAD" ? "the commit you're on" : "a commit before HEAD";
-    else if (/\.\w+$/.test(t)) meaning = "a file name";
-    else if (sub && ["switch", "branch", "merge", "rebase", "checkout", "push"].includes(sub)) meaning = "a branch name";
-    else if (/^[0-9a-f]{7,}$/.test(t)) meaning = "a commit ID";
+    let meaning = T.value;
+    if (/^["']/.test(t)) meaning = prevFlag === "-m" || prevFlag === "-am" ? T.message : T.text;
+    else if (t === ".") meaning = T.dot;
+    else if (/^https?:/.test(t)) meaning = T.url;
+    else if (t === "origin") meaning = T.origin;
+    else if (/^HEAD/.test(t)) meaning = t === "HEAD" ? T.head : T.headRel;
+    else if (/\.\w+$/.test(t)) meaning = T.file;
+    else if (sub && ["switch", "branch", "merge", "rebase", "checkout", "push"].includes(sub)) meaning = T.branch;
+    else if (/^[0-9a-f]{7,}$/.test(t)) meaning = T.commitId;
     out.push({ text: t, meaning, kind: "value" });
     prevFlag = null;
   }

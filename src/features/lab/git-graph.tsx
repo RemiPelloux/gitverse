@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from "react";
 import { Crosshair, GitCommitHorizontal, Maximize2, Minus, Plus, Tag, Cloud } from "lucide-react";
 import { layoutGraph, shortId, type GitEvent, type GraphLayout, type GraphNode, type World } from "@/engine";
+import { useT, type T } from "@/i18n";
 
 const COL_W = 96;
 const LANE_H = 112;
@@ -50,6 +51,7 @@ export function GitGraph({ world, events = [], eventKey = 0, ghosts = [], select
   const [dragging, setDragging] = useState(false);
   const [follow, setFollow] = useState(true);
   const [hover, setHover] = useState<string | null>(null);
+  const t = useT();
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const dragStart = useRef<{ x: number; y: number; vx: number; vy: number; dist?: number; k?: number } | null>(null);
 
@@ -151,7 +153,7 @@ export function GitGraph({ world, events = [], eventKey = 0, ghosts = [], select
   const conflict = world.repo?.op ?? null;
   const hoverNode = hover ? layout.nodes.find((n) => n.id === hover) : null;
 
-  const summary = describeGraph(layout, world);
+  const summary = describeGraph(layout, world, t);
 
   if (!world.repo) return <EmptyGraph className={className} kind="no-repo" compact={compact} />;
   if (!layout.nodes.length) return <EmptyGraph className={className} kind="no-commits" branch={layout.headBranch} compact={compact} />;
@@ -227,7 +229,7 @@ export function GitGraph({ world, events = [], eventKey = 0, ghosts = [], select
                   <path d={`M ${nx(head)} ${ny(head)} L ${x} ${ny(head)}`} className="dash-flow" stroke="var(--bad)" strokeWidth={2.5} strokeDasharray="6 6" />
                   <circle cx={x} cy={ny(head)} r={R} fill="var(--bad-soft)" stroke="var(--bad)" strokeWidth={2} strokeDasharray="3 3" />
                   <text x={x} y={ny(head) + R + 18} textAnchor="middle" className="fill-bad font-mono text-[11px] font-medium">
-                    {conflict.conflicts.length ? `${conflict.kind}: conflict!` : `${conflict.kind}: ready`}
+                    {conflict.conflicts.length ? t("lab.graph.conflict", { kind: conflict.kind }) : t("lab.graph.ready", { kind: conflict.kind })}
                   </text>
                 </g>
               );
@@ -246,12 +248,13 @@ export function GitGraph({ world, events = [], eventKey = 0, ghosts = [], select
                 onFocusNode={() => focusNode(n)}
                 onHover={setHover}
                 compact={compact}
+                t={t}
               />
             ))}
           </AnimatePresence>
 
           {/* ref labels (keyed by name so they slide when a branch moves) */}
-          <RefLabels layout={layout} />
+          <RefLabels layout={layout} t={t} />
         </g>
       </svg>
 
@@ -268,25 +271,25 @@ export function GitGraph({ world, events = [], eventKey = 0, ghosts = [], select
             {shortId(hoverNode.id)} · {hoverNode.commit.author}
           </p>
           <p className="mt-1 text-fg-3">
-            {hoverNode.commit.parents.length === 0 ? "First commit (no parent)" : hoverNode.merge ? "Merge commit · 2 parents" : `Parent ${shortId(hoverNode.commit.parents[0])}`}
-            {hoverNode.orphan && " · not on any branch"}
+            {hoverNode.commit.parents.length === 0 ? t("lab.graph.firstCommit") : hoverNode.merge ? t("lab.graph.mergeCommit") : t("lab.graph.parent", { id: shortId(hoverNode.commit.parents[0]) })}
+            {hoverNode.orphan && t("lab.graph.notOnBranch")}
           </p>
         </div>
       )}
 
       {!compact && (
         <div className="absolute right-3 bottom-3 flex items-center gap-1 rounded-md border border-line bg-surface p-1 shadow-[var(--shadow)]">
-          <GraphBtn label="Zoom out" onClick={() => zoom(0.8)}>
+          <GraphBtn label={t("lab.graph.zoomOut")} onClick={() => zoom(0.8)}>
             <Minus className="size-4" />
           </GraphBtn>
-          <GraphBtn label="Zoom in" onClick={() => zoom(1.25)}>
+          <GraphBtn label={t("lab.graph.zoomIn")} onClick={() => zoom(1.25)}>
             <Plus className="size-4" />
           </GraphBtn>
-          <GraphBtn label="Zoom to fit" onClick={fit}>
+          <GraphBtn label={t("lab.graph.zoomFit")} onClick={fit}>
             <Maximize2 className="size-4" />
           </GraphBtn>
           <GraphBtn
-            label={follow ? "Following HEAD" : "Follow HEAD"}
+            label={follow ? t("lab.graph.following") : t("lab.graph.follow")}
             active={follow}
             onClick={() => {
               setFollow(true);
@@ -300,9 +303,9 @@ export function GitGraph({ world, events = [], eventKey = 0, ghosts = [], select
       <ol className="sr-only">
         {[...layout.nodes].reverse().map((n) => (
           <li key={n.id}>
-            Commit {shortId(n.id)}: {n.commit.message}
-            {n.refs.length ? `, labels: ${n.refs.map((r) => r.name).join(", ")}` : ""}
-            {n.isHead ? ", HEAD is here" : ""}
+            {t("lab.graph.srCommit", { id: shortId(n.id), msg: n.commit.message })}
+            {n.refs.length ? t("lab.graph.srLabels", { list: n.refs.map((r) => r.name).join(", ") }) : ""}
+            {n.isHead ? t("lab.graph.srHead") : ""}
           </li>
         ))}
       </ol>
@@ -336,6 +339,7 @@ function CommitNode({
   onFocusNode,
   onHover,
   compact,
+  t,
 }: {
   node: GraphNode;
   selected: boolean;
@@ -345,6 +349,7 @@ function CommitNode({
   onFocusNode: () => void;
   onHover: (id: string | null) => void;
   compact?: boolean;
+  t: T;
 }) {
   const color = laneColor(n.lane);
   const x = nx(n);
@@ -358,7 +363,7 @@ function CommitNode({
       transition={{ type: "spring", stiffness: 260, damping: 22 }}
       role="button"
       tabIndex={compact ? -1 : 0}
-      aria-label={`Commit ${shortId(n.id)}: ${n.commit.message}${n.isHead ? " (HEAD)" : ""}`}
+      aria-label={`${t("lab.graph.nodeLabel", { id: shortId(n.id), msg: n.commit.message })}${n.isHead ? " (HEAD)" : ""}`}
       aria-pressed={selected}
       onClick={(e) => {
         e.stopPropagation();
@@ -400,14 +405,14 @@ function CommitNode({
       )}
       {n.orphan && (
         <text y={-R - 8} textAnchor="middle" className="fill-[var(--text-3)] text-[10px] italic">
-          unreachable
+          {t("lab.graph.unreachable")}
         </text>
       )}
     </motion.g>
   );
 }
 
-function RefLabels({ layout }: { layout: GraphLayout }) {
+function RefLabels({ layout, t }: { layout: GraphLayout; t: T }) {
   const labels: Array<{ key: string; x: number; y: number; text: string; kind: string; current: boolean; lane: number }> = [];
   for (const n of layout.nodes) {
     // current branch first so HEAD sits right above the node
@@ -464,7 +469,7 @@ function RefLabels({ layout }: { layout: GraphLayout }) {
               textAnchor="middle"
               className={clsx("font-mono text-[11px] font-semibold", isHead ? "fill-bad" : isTag ? "fill-warn" : isRemote ? "fill-[var(--text-2)]" : "fill-[var(--text)]")}
             >
-              {isHead ? "HEAD (detached)" : text}
+              {isHead ? t("lab.graph.headDetached") : text}
             </text>
           </motion.g>
         );
@@ -474,6 +479,9 @@ function RefLabels({ layout }: { layout: GraphLayout }) {
 }
 
 function EmptyGraph({ kind, branch, className, compact }: { kind: "no-repo" | "no-commits"; branch?: string | null; className?: string; compact?: boolean }) {
+  const t = useT();
+  const [repoBefore, repoAfter] = t("lab.graph.noRepoBody").split("{cmd}");
+  const [commitsBefore, commitsAfter] = t("lab.graph.noCommitsBody").split("{branch}");
   return (
     <div className={clsx("flex h-full w-full flex-col items-center justify-center gap-3 p-6 text-center", className)}>
       <motion.div
@@ -484,15 +492,19 @@ function EmptyGraph({ kind, branch, className, compact }: { kind: "no-repo" | "n
         <GitCommitHorizontal className={clsx(kind === "no-repo" ? "text-fg-3" : "text-accent-fg", compact ? "size-5" : "size-7")} />
       </motion.div>
       <div>
-        <p className="text-sm font-medium text-fg">{kind === "no-repo" ? "No repository yet" : "No commits yet"}</p>
+        <p className="text-sm font-medium text-fg">{kind === "no-repo" ? t("lab.graph.noRepo") : t("lab.graph.noCommits")}</p>
         <p className="mt-1 max-w-xs text-xs text-fg-2">
           {kind === "no-repo" ? (
             <>
-              Git isn&apos;t watching this folder. Run <code className="font-mono text-accent-fg">git init</code> to start.
+              {repoBefore}
+              <code className="font-mono text-accent-fg">git init</code>
+              {repoAfter}
             </>
           ) : (
             <>
-              You&apos;re on <span className="font-mono text-fg">{branch}</span>, but it has no snapshots. Your first commit will appear here.
+              {commitsBefore}
+              <span className="font-mono text-fg">{branch}</span>
+              {commitsAfter}
             </>
           )}
         </p>
@@ -501,11 +513,13 @@ function EmptyGraph({ kind, branch, className, compact }: { kind: "no-repo" | "n
   );
 }
 
-function describeGraph(layout: GraphLayout, world: World): string {
-  if (!world.repo) return "No repository yet.";
+function describeGraph(layout: GraphLayout, world: World, t: T): string {
+  if (!world.repo) return t("lab.graph.summaryNoRepo");
   const branches = Object.keys(world.repo.branches);
   const head = layout.nodes.find((n) => n.isHead);
-  return `Commit graph with ${layout.nodes.length} commit${layout.nodes.length === 1 ? "" : "s"} and ${branches.length} branch${branches.length === 1 ? "" : "es"} (${branches.join(", ")}). ${
-    head ? `HEAD is ${layout.headBranch ? `on ${layout.headBranch}` : "detached"} at "${head.commit.message.split("\n")[0]}".` : ""
-  }`;
+  const commits = t(layout.nodes.length === 1 ? "lab.graph.commitsOne" : "lab.graph.commitsOther", { n: layout.nodes.length });
+  const branchCount = t(branches.length === 1 ? "lab.graph.branchesOne" : "lab.graph.branchesOther", { n: branches.length });
+  const msg = head?.commit.message.split("\n")[0] ?? "";
+  const headText = head ? (layout.headBranch ? t("lab.graph.headOn", { branch: layout.headBranch, msg }) : t("lab.graph.headDetachedAt", { msg })) : "";
+  return t("lab.graph.summary", { commits, branches: branchCount, list: branches.join(", "), head: headText });
 }

@@ -4,6 +4,7 @@ import { clsx } from "clsx";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { BookOpen, Cloud, Files, GitCommitHorizontal, GitFork, Layers, SquareTerminal } from "lucide-react";
+import { useT } from "@/i18n";
 import { Editor } from "./editor";
 import { FilesPanel } from "./files-panel";
 import { GitGraph } from "./git-graph";
@@ -70,6 +71,7 @@ export function Workspace({
   mobileHeader?: ReactNode;
   stagesDefault?: boolean;
 }) {
+  const t = useT();
   const isDesktop = useMedia("(min-width: 1100px)", true);
   const isTablet = useMedia("(min-width: 768px)", true);
   const world = useLab((s) => s.world);
@@ -116,32 +118,32 @@ export function Workspace({
     );
 
   const tabs: Array<{ id: SideTab; label: string; icon: ReactNode; show: boolean }> = [
-    { id: "guide", label: "Guide", icon: <BookOpen className="size-3.5" />, show: !!guide && !isDesktop },
-    { id: "files", label: "Files", icon: <Files className="size-3.5" />, show: ui.files },
-    { id: "commit", label: "Commit", icon: <GitCommitHorizontal className="size-3.5" />, show: true },
-    { id: "remote", label: "Remote", icon: <Cloud className="size-3.5" />, show: ui.remote },
+    { id: "guide", label: t("lab.workspace.guide"), icon: <BookOpen className="size-3.5" />, show: !!guide && !isDesktop },
+    { id: "files", label: t("lab.workspace.files"), icon: <Files className="size-3.5" />, show: ui.files },
+    { id: "commit", label: t("lab.workspace.commit"), icon: <GitCommitHorizontal className="size-3.5" />, show: true },
+    { id: "remote", label: t("lab.workspace.remote"), icon: <Cloud className="size-3.5" />, show: ui.remote },
   ];
-  const activeSide = tabs.find((t) => t.id === sideTab && t.show) ? sideTab : (tabs.find((t) => t.show)?.id ?? "commit");
+  const activeSide = tabs.find((tab) => tab.id === sideTab && tab.show) ? sideTab : (tabs.find((tab) => tab.show)?.id ?? "commit");
 
   const sidePanel = (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex shrink-0 gap-1 border-b border-line px-2 pt-2" role="tablist" aria-label="Workspace panels">
+      <div className="flex shrink-0 gap-1 border-b border-line px-2 pt-2" role="tablist" aria-label={t("lab.workspace.panels")}>
         {tabs
-          .filter((t) => t.show)
-          .map((t) => (
+          .filter((tab) => tab.show)
+          .map((tab) => (
             <button
-              key={t.id}
+              key={tab.id}
               role="tab"
-              aria-selected={activeSide === t.id}
-              onClick={() => setSideTab(t.id)}
+              aria-selected={activeSide === tab.id}
+              onClick={() => setSideTab(tab.id)}
               className={clsx(
                 "relative flex items-center gap-1.5 rounded-t-lg px-2.5 pt-1.5 pb-2 text-xs font-medium transition-colors",
-                activeSide === t.id ? "text-fg" : "text-fg-3 hover:text-fg-2",
+                activeSide === tab.id ? "text-fg" : "text-fg-3 hover:text-fg-2",
               )}
             >
-              {t.icon}
-              {t.label}
-              {activeSide === t.id && <motion.span layoutId="side-tab" className="absolute inset-x-1 -bottom-px h-0.5 rounded-full bg-accent" />}
+              {tab.icon}
+              {tab.label}
+              {activeSide === tab.id && <motion.span layoutId="side-tab" className="absolute inset-x-1 -bottom-px h-0.5 rounded-full bg-accent" />}
             </button>
           ))}
       </div>
@@ -163,7 +165,7 @@ export function Workspace({
         showStages ? "border-accent/40 bg-accent-soft text-accent-fg" : "border-line bg-surface text-fg-2 hover:text-fg",
       )}
     >
-      <Layers className="size-3.5" /> {showStages ? "Hide" : "Show"} the 4 stages
+      <Layers className="size-3.5" /> {showStages ? t("lab.workspace.hideStages") : t("lab.workspace.showStages")}
     </button>
   );
 
@@ -218,11 +220,11 @@ export function Workspace({
 
   // Mobile: a focused, tabbed workspace rather than a shrunken desktop.
   const mobileTabs = [
-    { id: "guide" as const, label: "Guide", icon: BookOpen, show: !!guide },
-    { id: "graph" as const, label: "Graph", icon: GitFork, show: true },
-    { id: "terminal" as const, label: "Terminal", icon: SquareTerminal, show: true },
-    { id: "files" as const, label: ui.files ? "Files" : "Details", icon: Files, show: true },
-  ].filter((t) => t.show);
+    { id: "guide" as const, label: t("lab.workspace.guide"), icon: BookOpen, show: !!guide },
+    { id: "graph" as const, label: t("lab.workspace.graph"), icon: GitFork, show: true },
+    { id: "terminal" as const, label: t("lab.workspace.terminal"), icon: SquareTerminal, show: true },
+    { id: "files" as const, label: ui.files ? t("lab.workspace.files") : t("lab.workspace.details"), icon: Files, show: true },
+  ].filter((tab) => tab.show);
   return (
     <div className="flex h-full min-h-0 flex-col">
       {mobileHeader}
@@ -244,16 +246,16 @@ export function Workspace({
         )}
         {mobileTab === "files" && sidePanel}
       </div>
-      <nav className="grid shrink-0 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]" style={{ gridTemplateColumns: `repeat(${mobileTabs.length}, 1fr)` }} aria-label="Workspace">
-        {mobileTabs.map((t) => (
+      <nav className="grid shrink-0 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]" style={{ gridTemplateColumns: `repeat(${mobileTabs.length}, 1fr)` }} aria-label={t("lab.workspace.nav")}>
+        {mobileTabs.map((tab) => (
           <button
-            key={t.id}
-            onClick={() => setMobileTab(t.id)}
-            aria-current={mobileTab === t.id}
-            className={clsx("flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium", mobileTab === t.id ? "text-accent-fg" : "text-fg-3")}
+            key={tab.id}
+            onClick={() => setMobileTab(tab.id)}
+            aria-current={mobileTab === tab.id}
+            className={clsx("flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium", mobileTab === tab.id ? "text-accent-fg" : "text-fg-3")}
           >
-            <t.icon className="size-5" />
-            {t.label}
+            <tab.icon className="size-5" />
+            {tab.label}
           </button>
         ))}
       </nav>
@@ -264,12 +266,13 @@ export function Workspace({
 function ResizeHandle({ orientation, onDrag }: { orientation: "horizontal" | "vertical"; onDrag: (delta: number) => void }) {
   const last = useRef<number | null>(null);
   const horizontal = orientation === "horizontal";
+  const t = useT();
   return (
     <div
       role="separator"
       aria-orientation={horizontal ? "horizontal" : "vertical"}
       tabIndex={0}
-      aria-label={horizontal ? "Resize terminal" : "Resize side panel"}
+      aria-label={horizontal ? t("lab.workspace.resizeTerminal") : t("lab.workspace.resizeSide")}
       onKeyDown={(e) => {
         if (e.key === (horizontal ? "ArrowUp" : "ArrowLeft")) onDrag(20);
         if (e.key === (horizontal ? "ArrowDown" : "ArrowRight")) onDrag(-20);

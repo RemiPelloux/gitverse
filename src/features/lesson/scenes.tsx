@@ -10,8 +10,10 @@ import { scenario } from "@/features/curriculum/scenario";
 import { GitGraph } from "@/features/lab/git-graph";
 import { StagesVisualizer } from "@/features/lab/stages";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/i18n";
 
 export function Scene({ id }: { id: SceneId }) {
+  const t = useT();
   switch (id) {
     case "snapshots":
       return <SnapshotsScene />;
@@ -25,11 +27,11 @@ export function Scene({ id }: { id: SceneId }) {
           setup={() => scenario({ "README.md": "# My Project\n" }).run("git init").done()}
           stages
           actions={[
-            { label: "Edit README.md", run: (w) => ({ ...w, workdir: { ...w.workdir, "README.md": (w.workdir["README.md"] ?? "") + "More text!\n" } }), caption: "You edited a file. The change exists only in your working directory." },
-            { label: "git add README.md", command: "git add README.md", caption: "The file's current version moved into the staging area: it's ready to be snapshotted." },
-            { label: 'git commit -m "…"', command: 'git commit -m "Save README"', caption: "A commit! The staging area became a permanent snapshot in the repository." },
+            { label: t("lab.scenes.threeAreas.edit"), run: (w) => ({ ...w, workdir: { ...w.workdir, "README.md": (w.workdir["README.md"] ?? "") + "More text!\n" } }), caption: t("lab.scenes.threeAreas.editCaption") },
+            { label: "git add README.md", command: "git add README.md", caption: t("lab.scenes.threeAreas.addCaption") },
+            { label: 'git commit -m "…"', command: 'git commit -m "Save README"', caption: t("lab.scenes.threeAreas.commitCaption") },
           ]}
-          intro="A brand-new repository with one file Git doesn't track yet."
+          intro={t("lab.scenes.threeAreas.intro")}
         />
       );
     case "history":
@@ -39,11 +41,11 @@ export function Scene({ id }: { id: SceneId }) {
         <EngineScene
           setup={() => scenario().run("git init").commit("Home page", { "index.html": "home\n" }).commit("Styles", { "style.css": "css\n" }).done()}
           actions={[
-            { label: "Create branch “login”", command: "git switch -c login", caption: "A new label appears. HEAD moved onto it — same commit, new timeline." },
-            { label: "Commit on login", command: 'echo "login" > login.html && git add . && git commit -m "Login page"', caption: "Only the login label moved forward." },
-            { label: "Meanwhile, on main…", command: 'git switch main && echo "fix" > fix.txt && git add . && git commit -m "Fix typo"', caption: "main moved too. The two timelines have split apart — that's divergence." },
+            { label: t("lab.scenes.branchSplit.create"), command: "git switch -c login", caption: t("lab.scenes.branchSplit.createCaption") },
+            { label: t("lab.scenes.branchSplit.commit"), command: 'echo "login" > login.html && git add . && git commit -m "Login page"', caption: t("lab.scenes.branchSplit.commitCaption") },
+            { label: t("lab.scenes.branchSplit.meanwhile"), command: 'git switch main && echo "fix" > fix.txt && git add . && git commit -m "Fix typo"', caption: t("lab.scenes.branchSplit.meanwhileCaption") },
           ]}
-          intro="One timeline: main. Let's split it."
+          intro={t("lab.scenes.branchSplit.intro")}
         />
       );
     case "fast-forward":
@@ -52,8 +54,8 @@ export function Scene({ id }: { id: SceneId }) {
           setup={() =>
             scenario().run("git init").commit("Home page", { "index.html": "home\n" }).run("git switch -c feature").commit("Greeting", { "hi.txt": "hi\n" }).commit("Polish", { "hi.txt": "hi!\n" }).run("git switch main").done()
           }
-          actions={[{ label: "git merge feature", command: "git merge feature", caption: "main had nothing new, so Git simply slid the main label forward. No new commit needed: a fast-forward." }]}
-          intro="feature is two commits ahead of main, and main hasn't moved."
+          actions={[{ label: "git merge feature", command: "git merge feature", caption: t("lab.scenes.fastForward.caption") }]}
+          intro={t("lab.scenes.fastForward.intro")}
         />
       );
     case "three-way":
@@ -62,8 +64,8 @@ export function Scene({ id }: { id: SceneId }) {
           setup={() =>
             scenario().run("git init").commit("Home page", { "index.html": "home\n" }).run("git switch -c feature").commit("Footer", { "footer.html": "f\n" }).run("git switch main").commit("About page", { "about.html": "a\n" }).done()
           }
-          actions={[{ label: "git merge feature", command: "git merge feature", caption: "Git combined both sides into a new merge commit with two parents — the paths reconnect." }]}
-          intro="Both main and feature have new commits. They share an ancestor: the merge base."
+          actions={[{ label: "git merge feature", command: "git merge feature", caption: t("lab.scenes.threeWay.caption") }]}
+          intro={t("lab.scenes.threeWay.intro")}
         />
       );
     case "remote":
@@ -74,10 +76,10 @@ export function Scene({ id }: { id: SceneId }) {
         <EngineScene
           setup={() => scenario().run("git init").commit("README", { "README.md": "r\n" }).commit("Home page", { "index.html": "h\n" }).commit("Pricing", { "pricing.html": "p\n" }).done()}
           actions={[
-            { label: "git reset --hard HEAD~1", command: "git reset --hard HEAD~1", caption: "main moved back. The Pricing commit is now unreachable — dashed and faded — but it still exists!" },
-            { label: "Recover it", command: "git reset --hard HEAD@{1}", caption: "Using the reflog (HEAD@{1} = where HEAD was one move ago), main points at Pricing again. Nothing was lost." },
+            { label: "git reset --hard HEAD~1", command: "git reset --hard HEAD~1", caption: t("lab.scenes.undo.resetCaption") },
+            { label: t("lab.scenes.undo.recover"), command: "git reset --hard HEAD@{1}", caption: t("lab.scenes.undo.recoverCaption") },
           ]}
-          intro="Three commits on main."
+          intro={t("lab.scenes.undo.intro")}
           keepGhosts
         />
       );
@@ -95,6 +97,7 @@ interface SceneAction {
 
 /** A small, real repository the learner pokes with buttons — powered by the engine. */
 function EngineScene({ setup, actions, intro, stages, keepGhosts }: { setup: () => World; actions: SceneAction[]; intro: string; stages?: boolean; keepGhosts?: boolean }) {
+  const t = useT();
   const [initial] = useState(setup);
   const [world, setWorld] = useState(initial);
   const [step, setStep] = useState(0);
@@ -136,7 +139,7 @@ function EngineScene({ setup, actions, intro, stages, keepGhosts }: { setup: () 
             {actions[step].label}
           </Button>
         ) : (
-          <span className="text-sm font-medium text-ok">✓ That&apos;s the idea!</span>
+          <span className="text-sm font-medium text-ok">{t("lab.scenes.done")}</span>
         )}
         {step > 0 && (
           <Button
@@ -149,7 +152,7 @@ function EngineScene({ setup, actions, intro, stages, keepGhosts }: { setup: () 
               setEvents([]);
             }}
           >
-            <RotateCcw className="size-3.5" /> Replay
+            <RotateCcw className="size-3.5" /> {t("lab.scenes.replay")}
           </Button>
         )}
         <span className="ml-auto text-xs text-fg-3">
@@ -161,13 +164,14 @@ function EngineScene({ setup, actions, intro, stages, keepGhosts }: { setup: () 
 }
 
 const VERSIONS = [
-  { label: "Monday", lines: ["<h1>Welcome</h1>"] },
-  { label: "Tuesday", lines: ["<h1>Welcome</h1>", "<p>About me</p>"] },
-  { label: "Wednesday", lines: ["<h1>Welcome!</h1>", "<p>About me</p>", "<img src=cat.png>"] },
-  { label: "Thursday", lines: ["<h1>Welcome!</h1>", "<p>About me</p>", "<img src=cat.png>", "<footer>©</footer>"] },
-];
+  { label: "monday", lines: ["<h1>Welcome</h1>"] },
+  { label: "tuesday", lines: ["<h1>Welcome</h1>", "<p>About me</p>"] },
+  { label: "wednesday", lines: ["<h1>Welcome!</h1>", "<p>About me</p>", "<img src=cat.png>"] },
+  { label: "thursday", lines: ["<h1>Welcome!</h1>", "<p>About me</p>", "<img src=cat.png>", "<footer>©</footer>"] },
+] as const;
 
 function SnapshotsScene() {
+  const t = useT();
   const [count, setCount] = useState(1);
   const [viewing, setViewing] = useState(0);
   return (
@@ -186,7 +190,7 @@ function SnapshotsScene() {
                 "relative z-[1] flex w-28 shrink-0 flex-col items-center gap-2 rounded-lg border p-2 text-left transition-colors",
                 viewing === i ? "border-accent bg-accent-soft" : "border-line bg-surface hover:border-line-strong",
               )}
-              aria-label={`Snapshot from ${v.label}`}
+              aria-label={t("lab.scenes.snapshots.snapshotFrom", { day: t(`lab.scenes.snapshots.days.${v.label}`) })}
             >
               <div className="h-20 w-full overflow-hidden rounded-lg bg-surface-2 p-1.5 font-mono text-[7px] leading-tight text-fg-3">
                 {v.lines.map((l) => (
@@ -197,7 +201,7 @@ function SnapshotsScene() {
               </div>
               <span className="flex items-center gap-1 text-[11px] text-fg-2">
                 <Camera className="size-3" />
-                {v.label}
+                {t(`lab.scenes.snapshots.days.${v.label}`)}
               </span>
             </motion.button>
           ))}
@@ -205,7 +209,7 @@ function SnapshotsScene() {
       </div>
       <div className="rounded-lg border border-line bg-surface-2/50 p-3">
         <p className="text-xs text-fg-3">
-          index.html as it was on <span className="font-medium text-fg-2">{VERSIONS[viewing].label}</span>
+          {t("lab.scenes.snapshots.asItWas")} <span className="font-medium text-fg-2">{t(`lab.scenes.snapshots.days.${VERSIONS[viewing].label}`)}</span>
         </p>
         <pre className="mt-1 font-mono text-xs text-fg">{VERSIONS[viewing].lines.join("\n")}</pre>
       </div>
@@ -217,10 +221,10 @@ function SnapshotsScene() {
               setViewing(count);
             }}
           >
-            <Camera className="size-4" /> Edit & take a snapshot
+            <Camera className="size-4" /> {t("lab.scenes.snapshots.take")}
           </Button>
         ) : (
-          <p className="text-sm text-ok">✓ Click any snapshot to travel back in time. That&apos;s what Git does for you.</p>
+          <p className="text-sm text-ok">{t("lab.scenes.snapshots.done")}</p>
         )}
       </div>
     </div>
@@ -228,6 +232,7 @@ function SnapshotsScene() {
 }
 
 function RepositoryScene() {
+  const t = useT();
   const [show, setShow] = useState(false);
   const files = ["index.html", "style.css", "photo.png"];
   return (
@@ -240,7 +245,7 @@ function RepositoryScene() {
           <AnimatePresence>
             {show && (
               <motion.li initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="flex items-center gap-2 text-sm text-accent-fg">
-                <FolderLock className="size-4" /> .git/ <span className="text-xs text-fg-3">← every snapshot, branch and setting lives here</span>
+                <FolderLock className="size-4" /> .git/ <span className="text-xs text-fg-3">{t("lab.scenes.repository.gitNote")}</span>
               </motion.li>
             )}
           </AnimatePresence>
@@ -253,23 +258,24 @@ function RepositoryScene() {
         </ul>
       </div>
       <Button variant="secondary" onClick={() => setShow((s) => !s)} className="self-start">
-        {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />} {show ? "Hide" : "Show"} hidden files
+        {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />} {show ? t("lab.scenes.repository.hide") : t("lab.scenes.repository.show")}
       </Button>
     </div>
   );
 }
 
 function ConflictScene() {
+  const t = useT();
   const [merged, setMerged] = useState(false);
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-3">
         {[
-          { who: "main (Maya)", line: "color: purple;", tone: "border-accent/50 bg-accent-soft" },
-          { who: "feature/dark-mode (you)", line: "color: white;", tone: "border-ok/50 bg-ok-soft" },
+          { id: "main", who: "main (Maya)", line: "color: purple;", tone: "border-accent/50 bg-accent-soft" },
+          { id: "feature", who: `feature/dark-mode ${t("lab.scenes.conflict.you")}`, line: "color: white;", tone: "border-ok/50 bg-ok-soft" },
         ].map((s, i) => (
           <motion.div
-            key={s.who}
+            key={s.id}
             animate={merged ? { x: i === 0 ? 12 : -12, scale: 0.97 } : { x: 0, scale: 1 }}
             transition={{ type: "spring", stiffness: 200, damping: 15 }}
             className={clsx("rounded-lg border p-3", s.tone)}
@@ -298,9 +304,9 @@ function ConflictScene() {
       </AnimatePresence>
       <div className="flex items-center gap-2">
         {!merged ? (
-          <Button onClick={() => setMerged(true)}>Try to merge</Button>
+          <Button onClick={() => setMerged(true)}>{t("lab.scenes.conflict.tryMerge")}</Button>
         ) : (
-          <p className="text-sm text-fg-2">Git marks both versions in the file and waits for you to choose. The font line merged fine — only the color line conflicts.</p>
+          <p className="text-sm text-fg-2">{t("lab.scenes.conflict.result")}</p>
         )}
       </div>
     </div>
@@ -308,6 +314,7 @@ function ConflictScene() {
 }
 
 function HistoryScene() {
+  const t = useT();
   const initial = useMemo(
     () =>
       scenario()
@@ -330,33 +337,34 @@ function HistoryScene() {
         <GitGraph world={world} onSelect={select} compact />
       </div>
       <p className="text-sm text-fg-2">
-        Click a circle to move HEAD there. Files at that point:{" "}
+        {t("lab.scenes.history.hint")}{" "}
         <span className="font-mono text-fg">{Object.keys(world.workdir).sort().join(", ")}</span>
       </p>
       {world.repo?.head.kind === "detached" && (
-        <p className="text-xs text-warn">HEAD is “detached”: you&apos;re looking at an old snapshot, not standing on a branch. Click the newest circle to return to main.</p>
+        <p className="text-xs text-warn">{t("lab.scenes.history.detached")}</p>
       )}
     </div>
   );
 }
 
 function RemoteScene({ pull }: { pull: boolean }) {
+  const t = useT();
   const [phase, setPhase] = useState(0);
   const local = pull ? ["Start", "Pancakes"] : ["README", "Home page"];
   const remoteInitial = pull ? ["Start", "Pancakes", "Pasta"] : [];
   const steps = pull
     ? [
-        { label: "git fetch", icon: CloudDownload, caption: "fetch downloaded Maya's commit and moved origin/main. Your own main (and files) didn't change." },
-        { label: "git pull", icon: CloudDownload, caption: "pull = fetch + merge. Now your main has the Pasta recipe too." },
+        { label: "git fetch", icon: CloudDownload, caption: t("lab.scenes.remote.fetchCaption") },
+        { label: "git pull", icon: CloudDownload, caption: t("lab.scenes.remote.pullCaption") },
       ]
-    : [{ label: "git push", icon: CloudUpload, caption: "push uploaded your commits. GitHub now has a copy of your history." }];
+    : [{ label: "git push", icon: CloudUpload, caption: t("lab.scenes.remote.pushCaption") }];
   const remote = pull ? remoteInitial : phase >= 1 ? local : remoteInitial;
   const localNow = pull && phase >= 2 ? remoteInitial : local;
   const tracking = pull ? (phase >= 1 ? "Pasta" : "Pancakes") : phase >= 1 ? "Home page" : null;
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4">
-        <Machine icon={<Laptop className="size-4" />} title="Your computer" commits={localNow} tracking={tracking} />
+        <Machine icon={<Laptop className="size-4" />} title={t("lab.scenes.remote.yourComputer")} commits={localNow} tracking={tracking} />
         <div className="relative h-10 w-10 sm:w-16">
           <AnimatePresence>
             {phase > 0 && (
@@ -371,10 +379,10 @@ function RemoteScene({ pull }: { pull: boolean }) {
           </AnimatePresence>
           <div className="absolute top-1/2 h-px w-full bg-line" />
         </div>
-        <Machine icon={<Cloud className="size-4" />} title="GitHub (origin)" commits={remote} remote />
+        <Machine icon={<Cloud className="size-4" />} title={t("lab.scenes.remote.github")} commits={remote} remote />
       </div>
       <p className="min-h-10 text-sm text-fg-2" aria-live="polite">
-        {phase === 0 ? (pull ? "Maya pushed “Pasta” to GitHub. Your computer doesn't know yet." : "Your commits only exist on your computer. GitHub is empty.") : steps[phase - 1].caption}
+        {phase === 0 ? (pull ? t("lab.scenes.remote.pullIntro") : t("lab.scenes.remote.pushIntro")) : steps[phase - 1].caption}
       </p>
       <div className="flex gap-2">
         {phase < steps.length ? (
@@ -387,7 +395,7 @@ function RemoteScene({ pull }: { pull: boolean }) {
           </Button>
         ) : (
           <Button variant="ghost" size="sm" onClick={() => setPhase(0)}>
-            <RotateCcw className="size-3.5" /> Replay
+            <RotateCcw className="size-3.5" /> {t("lab.scenes.replay")}
           </Button>
         )}
       </div>
@@ -396,6 +404,7 @@ function RemoteScene({ pull }: { pull: boolean }) {
 }
 
 function Machine({ icon, title, commits, tracking, remote }: { icon: React.ReactNode; title: string; commits: string[]; tracking?: string | null; remote?: boolean }) {
+  const t = useT();
   return (
     <div className={clsx("min-w-0 rounded-lg border p-3", remote ? "border-info/40 bg-info-soft" : "border-line bg-surface-2/50")}>
       <p className="flex items-center gap-1.5 text-xs font-medium text-fg-2">
@@ -412,7 +421,7 @@ function Machine({ icon, title, commits, tracking, remote }: { icon: React.React
             </motion.li>
           ))}
         </AnimatePresence>
-        {!commits.length && <li className="text-xs text-fg-3">empty</li>}
+        {!commits.length && <li className="text-xs text-fg-3">{t("lab.scenes.remote.empty")}</li>}
       </ol>
     </div>
   );
