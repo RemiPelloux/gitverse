@@ -62,6 +62,9 @@ interface ProgressState {
   /** While a learner is working through a lesson step, the level-up popup waits. */
   holdCelebrations: boolean;
   setHoldCelebrations: (hold: boolean) => void;
+  /** The celebration screen lists badges itself, so toasts stay quiet there. */
+  quietToasts: boolean;
+  setQuietToasts: (quiet: boolean) => void;
 
   setName: (name: string) => void;
   setAvatar: (avatar: AvatarColor) => void;
@@ -95,12 +98,15 @@ const initial = {
   toasts: [] as Toast[],
   levelUp: null as number | null,
   holdCelebrations: false,
+  quietToasts: false,
 };
 
 export const useProgress = create<ProgressState>()(
   persist(
     (set, get) => {
-      const pushToast = (t: Omit<Toast, "id">) => set((s) => ({ toasts: [...s.toasts.slice(-3), { ...t, id: toastId++ }] }));
+      const pushToast = (t: Omit<Toast, "id">) => {
+        if (!get().quietToasts) set((s) => ({ toasts: [...s.toasts.slice(-3), { ...t, id: toastId++ }] }));
+      };
 
       /** Add XP to totals + today's activity, then evaluate quests. */
       const addXp = (amount: number, mutateDay?: (d: DayActivity) => void) => {
@@ -207,6 +213,7 @@ export const useProgress = create<ProgressState>()(
         dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
         dismissLevelUp: () => set({ levelUp: null }),
         setHoldCelebrations: (holdCelebrations) => set({ holdCelebrations }),
+        setQuietToasts: (quietToasts) => set(quietToasts ? { quietToasts, toasts: [] } : { quietToasts }),
         resetProgress: () => set({ ...initial, name: get().name, avatar: get().avatar, onboarded: get().onboarded, experience: get().experience, settings: get().settings }),
       };
     },
@@ -221,7 +228,7 @@ export const useProgress = create<ProgressState>()(
       },
       partialize: (s) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { toasts, levelUp, holdCelebrations, ...rest } = s;
+        const { toasts, levelUp, holdCelebrations, quietToasts, ...rest } = s;
         return rest;
       },
     },

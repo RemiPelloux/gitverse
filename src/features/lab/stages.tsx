@@ -131,9 +131,9 @@ export function StagesVisualizer({ world, showRemote = true, className }: { worl
         <div className={clsx("grid gap-2", showRemote ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3")}>
           {cols.map((col) => (
             <div key={col.id} className="relative flex min-h-36 min-w-0 flex-col rounded-lg border border-line bg-surface-2/60 p-2.5">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-fg-2">
-                <span className="text-fg-3">{col.icon}</span>
-                <span className="truncate">{col.title}</span>
+              <div className="flex items-start gap-1.5 text-xs leading-tight font-semibold text-fg-2">
+                <span className="hidden shrink-0 text-fg-3 min-[480px]:inline">{col.icon}</span>
+                <span className="line-clamp-2 min-w-0 break-words">{col.title}</span>
               </div>
               <div className="mt-2 flex flex-1 flex-col gap-1.5">
                 <AnimatePresence mode="popLayout">
@@ -156,7 +156,7 @@ export function StagesVisualizer({ world, showRemote = true, className }: { worl
                     >
                       <FileText className="size-3.5 shrink-0" aria-hidden />
                       <span className="min-w-0 truncate font-mono">{c.path}</span>
-                      <span className="ml-auto shrink-0 text-[11px] opacity-80">{t(`lab.stages.notes.${c.note}`)}</span>
+                      <span className="ml-auto hidden shrink-0 text-[11px] opacity-80 min-[480px]:inline">{t(`lab.stages.notes.${c.note}`)}</span>
                     </motion.button>
                   ))}
                 </AnimatePresence>

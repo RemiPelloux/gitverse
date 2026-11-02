@@ -4,6 +4,16 @@ import { clsx } from "clsx";
 import { UserRound } from "lucide-react";
 import type { AvatarColor } from "@/features/progress/rules";
 
+/** Fixed, saturated colors (same in both themes) so white initials always stay readable. */
+export const AVATAR_HEX: Record<AvatarColor, string> = {
+  "lane-0": "#d9432a",
+  "lane-1": "#3d8a37",
+  "lane-2": "#2b6cb0",
+  "lane-3": "#a8770a",
+  "lane-4": "#9b4a9b",
+  "lane-5": "#1f8a80",
+};
+
 /** Initials on a lane-colored disc — the learner's mark across the app. */
 export function Avatar({ name, color, size = "md", className }: { name: string; color: AvatarColor; size?: "sm" | "md" | "lg" | "xl"; className?: string }) {
   const initials = name
@@ -16,7 +26,7 @@ export function Avatar({ name, color, size = "md", className }: { name: string; 
   return (
     <span
       className={clsx("grid shrink-0 place-items-center rounded-full font-semibold text-white shadow-[inset_0_-2px_0_rgba(0,0,0,0.18)]", sizes[size], className)}
-      style={{ background: `var(--${color})` }}
+      style={{ background: AVATAR_HEX[color] }}
       aria-hidden
     >
       {initials || <UserRound className="size-[55%]" />}

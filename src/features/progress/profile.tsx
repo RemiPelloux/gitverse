@@ -4,7 +4,7 @@ import { clsx } from "clsx";
 import Link from "next/link";
 import { useState } from "react";
 import { Accessibility, Flame, Keyboard, Languages, Palette, RotateCcw, SquareTerminal, Star, Target, Trophy } from "lucide-react";
-import { Avatar } from "@/components/ui/avatar";
+import { Avatar, AVATAR_HEX } from "@/components/ui/avatar";
 import { Button, Kbd } from "@/components/ui/button";
 import { Card, DynamicIcon, ProgressBar, useHydrated } from "@/components/ui/misc";
 import { PLAYGROUND_KEY, removeKey } from "@/features/lab/persistence";
@@ -80,7 +80,7 @@ function ProfileInner() {
                   aria-label={`${t("profile.avatar")} ${c.slice(-1)}`}
                   onClick={() => p.setAvatar(c)}
                   className={clsx("size-6 rounded-full ring-offset-2 ring-offset-surface transition-transform hover:scale-110", p.avatar === c && "ring-2 ring-fg")}
-                  style={{ background: `var(--${c})` }}
+                  style={{ background: AVATAR_HEX[c] }}
                 />
               ))}
             </div>
