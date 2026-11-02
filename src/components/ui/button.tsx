@@ -5,16 +5,17 @@ import type { ComponentProps, ReactNode } from "react";
 type Variant = "primary" | "secondary" | "ghost" | "ok" | "danger";
 type Size = "sm" | "md" | "lg";
 
+/* Tactile buttons: a solid bottom edge that the button sinks into when pressed. */
 const base =
-  "inline-flex items-center justify-center gap-2 font-medium rounded-md transition-colors duration-150 active:translate-y-px disabled:opacity-40 disabled:pointer-events-none select-none whitespace-nowrap";
+  "inline-flex items-center justify-center gap-2 font-semibold rounded-lg transition-[background-color,color,border-color,box-shadow,transform] duration-100 disabled:opacity-40 disabled:pointer-events-none select-none whitespace-nowrap";
 
 const variants: Record<Variant, string> = {
-  primary:
-    "bg-accent text-white hover:bg-[#b0361a]",
-  secondary: "bg-surface-2 text-fg border border-line hover:border-line-strong hover:bg-elevated",
-  ghost: "text-fg-2 hover:text-fg hover:bg-surface-2",
-  ok: "bg-ok text-[var(--on-ok)] hover:brightness-110",
-  danger: "bg-bad-soft text-bad hover:bg-bad hover:text-white",
+  primary: "bg-accent text-white shadow-[0_3px_0_var(--accent-deep)] hover:bg-[#b53a1c] active:translate-y-[3px] active:shadow-none",
+  secondary:
+    "bg-elevated text-fg border border-line shadow-[0_2px_0_var(--edge)] hover:bg-surface hover:border-line-strong active:translate-y-[2px] active:shadow-none",
+  ghost: "text-fg-2 hover:text-fg hover:bg-surface-2 active:translate-y-px",
+  ok: "bg-ok text-[var(--on-ok)] shadow-[0_3px_0_color-mix(in_oklab,var(--ok)_60%,black)] hover:brightness-110 active:translate-y-[3px] active:shadow-none",
+  danger: "bg-bad-soft text-bad hover:bg-bad hover:text-white active:translate-y-px",
 };
 
 const sizes: Record<Size, string> = {

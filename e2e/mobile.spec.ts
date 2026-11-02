@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { seedLearner } from "./helpers";
 
 test("first lesson is completable on a phone", async ({ page }) => {
   await page.goto("/learn/what-is-git");
@@ -19,8 +20,9 @@ test("first lesson is completable on a phone", async ({ page }) => {
   expect(overflow).toBe(false);
 });
 
-for (const path of ["/", "/learn", "/commands", "/profile", "/playground", "/learn/what-is-git"]) {
+for (const path of ["/", "/welcome", "/learn", "/commands", "/profile", "/playground", "/learn/what-is-git"]) {
   test(`no horizontal overflow on ${path}`, async ({ page }) => {
+    if (path !== "/welcome") await seedLearner(page, { name: "Camille", completed: { "what-is-git": { at: 1, xp: 50, stars: 3 } } });
     await page.goto(path);
     await page.waitForTimeout(800);
     const { inner, visual } = await page.evaluate(() => ({ inner: window.innerWidth, visual: window.visualViewport!.width }));

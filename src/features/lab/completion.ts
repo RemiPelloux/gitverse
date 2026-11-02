@@ -1,5 +1,6 @@
 import { GIT_COMMANDS, type World } from "@/engine";
-import { COMMAND_DOCS, docFor } from "@/features/docs/commands";
+import { COMMAND_DOCS, localizedDocs } from "@/features/docs/commands";
+import { translate, type Locale, type MessageKey } from "@/i18n";
 
 export interface Completion {
   /** Full replacement for the input line. */
@@ -7,6 +8,17 @@ export interface Completion {
   label: string;
   detail?: string;
 }
+
+const DETAIL = {
+  branch: "lab.completion.branch",
+  remoteBranch: "lab.completion.remoteBranch",
+  fromRemote: "lab.completion.fromRemote",
+  changed: "lab.completion.changed",
+  everything: "lab.completion.everything",
+  currentCommit: "lab.completion.currentCommit",
+  previousCommit: "lab.completion.previousCommit",
+  remote: "lab.completion.remote",
+} as const satisfies Record<string, MessageKey>;
 
 const SHELL_CMDS = ["git", "ls", "cat", "touch", "echo", "rm", "mv", "clear", "help", "pwd"];
 
@@ -29,7 +41,9 @@ const FLAGS: Record<string, string[]> = {
 };
 
 /** Context-aware completions for the current input line. */
-export function complete(input: string, world: World): Completion[] {
+export function complete(input: string, world: World, locale: Locale = "en"): Completion[] {
+  const docFor = (name: string) => localizedDocs(locale).find((d) => d.name === name) ?? null;
+  const L = (key: keyof typeof DETAIL) => translate(locale, DETAIL[key]);
   const endsWithSpace = /\s$/.test(input);
   const parts = input.trimStart().split(/\s+/);
   const current = endsWithSpace ? "" : (parts.pop() ?? "");
@@ -67,28 +81,28 @@ export function complete(input: string, world: World): Completion[] {
   const doc = docFor(sub);
   switch (doc?.args ?? (sub === "stash" ? "stash" : null)) {
     case "branch":
-      branches.forEach((b) => push(b, "branch"));
-      if (sub === "merge" || sub === "rebase") remoteRefs.forEach((r) => push(r, "remote branch"));
+      branches.forEach((b) => push(b, L("branch")));
+      if (sub === "merge" || sub === "rebase") remoteRefs.forEach((r) => push(r, L("remoteBranch")));
       if (sub === "switch" || sub === "checkout")
-        remoteRefs.map((r) => r.split("/").slice(1).join("/")).forEach((b) => push(b, "from remote"));
+        remoteRefs.map((r) => r.split("/").slice(1).join("/")).forEach((b) => push(b, L("fromRemote")));
       break;
     case "file": {
       const changed = files.filter((f) => repo?.index[f] !== world.workdir[f]);
       const deleted = tracked.filter((f) => !(f in world.workdir));
-      [...changed, ...deleted].forEach((f) => push(f, "changed"));
-      if (sub === "add") push(".", "everything");
+      [...changed, ...deleted].forEach((f) => push(f, L("changed")));
+      if (sub === "add") push(".", L("everything"));
       files.forEach((f) => push(f));
       break;
     }
     case "commit":
-      push("HEAD", "current commit");
-      push("HEAD~1", "previous commit");
-      branches.forEach((b) => push(b, "branch"));
+      push("HEAD", L("currentCommit"));
+      push("HEAD~1", L("previousCommit"));
+      branches.forEach((b) => push(b, L("branch")));
       break;
     case "remote":
       if (sub === "remote" && before.length === 2) push("add");
-      if (repo) Object.keys(repo.remotes).forEach((r) => push(r, "remote"));
-      if (sub === "push" || sub === "pull") branches.forEach((b) => push(b, "branch"));
+      if (repo) Object.keys(repo.remotes).forEach((r) => push(r, L("remote")));
+      if (sub === "push" || sub === "pull") branches.forEach((b) => push(b, L("branch")));
       break;
   }
   for (const f of FLAGS[sub] ?? []) if (!f.startsWith("-")) push(f);

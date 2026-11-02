@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, GitCompare, ShieldAlert } from "lucide-react";
 import { hasConflictMarkers, headTree, hunks } from "@/engine";
 import { fileStates, StateBadge } from "./files-panel";
+import { useT } from "@/i18n";
 import { useLab } from "./store";
 
 type Region = "plain" | "marker" | "ours" | "theirs";
@@ -52,6 +53,7 @@ const REGION_CLS: Record<Region, string> = {
 export function Editor({ path, onBack }: { path: string; onBack?: () => void }) {
   const world = useLab((s) => s.world);
   const writeFile = useLab((s) => s.writeFile);
+  const t = useT();
   const content = world.workdir[path] ?? "";
   const [draft, setDraft] = useState(content);
   const [pending, setPending] = useState(false);
@@ -98,7 +100,7 @@ export function Editor({ path, onBack }: { path: string; onBack?: () => void }) 
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center gap-2 border-b border-line px-3 py-2">
         {onBack && (
-          <button onClick={onBack} className="rounded-md p-1 text-fg-3 hover:bg-surface-2 hover:text-fg" aria-label="Back to files">
+          <button onClick={onBack} className="rounded-md p-1 text-fg-3 hover:bg-surface-2 hover:text-fg" aria-label={t("lab.editor.backToFiles")}>
             <ArrowLeft className="size-4" />
           </button>
         )}
@@ -113,7 +115,7 @@ export function Editor({ path, onBack }: { path: string; onBack?: () => void }) 
                 className={clsx("rounded-md px-2 py-0.5", view === v ? "bg-elevated text-fg shadow-sm" : "text-fg-3 hover:text-fg")}
                 aria-pressed={view === v}
               >
-                {v === "edit" ? "Edit" : "Changes"}
+                {v === "edit" ? t("lab.editor.edit") : t("lab.editor.changes")}
               </button>
             ))}
           </div>
@@ -123,18 +125,18 @@ export function Editor({ path, onBack }: { path: string; onBack?: () => void }) 
       {conflicted && view === "edit" && (
         <div className="border-b border-line bg-bad-soft/40 px-3 py-2">
           <p className="flex items-center gap-1.5 text-xs font-medium text-bad">
-            <ShieldAlert className="size-3.5" /> Conflict: choose what to keep
+            <ShieldAlert className="size-3.5" /> {t("lab.editor.conflictTitle")}
           </p>
           <p className="mt-0.5 text-[11px] text-fg-2">
-            <span className="rounded bg-accent-soft px-1">highlighted</span> = current branch (HEAD) ·{" "}
-            <span className="rounded bg-ok-soft px-1">green</span> = incoming{op ? ` (${op.theirsLabel})` : ""}
+            <span className="rounded bg-accent-soft px-1">{t("lab.editor.highlighted")}</span> {t("lab.editor.currentBranch")}{" "}
+            <span className="rounded bg-ok-soft px-1">{t("lab.editor.green")}</span> {t("lab.editor.incoming")}{op ? ` (${op.theirsLabel})` : ""}
           </p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {(
               [
-                ["ours", "Accept current"],
-                ["theirs", "Accept incoming"],
-                ["both", "Accept both"],
+                ["ours", t("lab.editor.acceptCurrent")],
+                ["theirs", t("lab.editor.acceptIncoming")],
+                ["both", t("lab.editor.acceptBoth")],
               ] as const
             ).map(([k, label]) => (
               <button
@@ -154,7 +156,7 @@ export function Editor({ path, onBack }: { path: string; onBack?: () => void }) 
       )}
       {!conflicted && op?.conflicts.includes(path) && (
         <div className="border-b border-line bg-ok-soft px-3 py-2 text-xs text-ok">
-          Markers removed. Now mark it resolved: <code className="font-mono">git add {path}</code>
+          {t("lab.editor.markersRemoved")} <code className="font-mono">git add {path}</code>
         </div>
       )}
 
@@ -179,7 +181,7 @@ export function Editor({ path, onBack }: { path: string; onBack?: () => void }) 
                 onChange={(e) => onChange(e.target.value)}
                 onBlur={() => pending && flush(draft)}
                 spellCheck={false}
-                aria-label={`Edit ${path}`}
+                aria-label={t("lab.editor.editFile", { path })}
                 className="absolute inset-0 h-full w-full resize-none overflow-hidden bg-transparent px-3 py-2 leading-6 whitespace-pre text-transparent caret-accent outline-none"
                 wrap="off"
               />
@@ -188,8 +190,8 @@ export function Editor({ path, onBack }: { path: string; onBack?: () => void }) 
         </div>
       ) : (
         <div className="scrollbar-thin min-h-0 flex-1 space-y-4 overflow-auto p-3">
-          <DiffBlock title="Not staged yet (working directory vs. staging area)" from={indexVersion} to={world.workdir[path]} empty="No unstaged changes." />
-          <DiffBlock title="Staged (staging area vs. last commit)" from={headVersion} to={indexVersion} empty="Nothing staged for this file." />
+          <DiffBlock title={t("lab.editor.notStagedTitle")} from={indexVersion} to={world.workdir[path]} empty={t("lab.editor.noUnstaged")} />
+          <DiffBlock title={t("lab.editor.stagedTitle")} from={headVersion} to={indexVersion} empty={t("lab.editor.nothingStaged")} />
         </div>
       )}
     </div>

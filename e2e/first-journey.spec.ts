@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { seedLearner } from "./helpers";
 
 async function type(page: Page, cmd: string) {
   const input = page.getByRole("textbox", { name: "Command" });
@@ -9,6 +10,18 @@ async function type(page: Page, cmd: string) {
 test("a newcomer completes lesson 1 and their first commit from the landing page", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("link", { name: /start learning/i }).first().click();
+
+  // Welcome tour: language, name, experience, daily goal
+  await expect(page).toHaveURL(/\/welcome/);
+  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByLabel(/your first name/i).fill("Alex");
+  await page.getByRole("button", { name: "Next" }).click();
+  await expect(page.getByRole("heading", { name: /nice to meet you, alex/i })).toBeVisible();
+  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("radio", { name: /casual/i }).click();
+  await page.getByRole("button", { name: "Next" }).click();
+  await expect(page.getByRole("heading", { name: "You're all set, Alex!" })).toBeVisible();
+  await page.getByRole("button", { name: /start my first lesson/i }).click();
   await expect(page).toHaveURL(/\/learn\/what-is-git/);
 
   // Discover x2
@@ -19,12 +32,12 @@ test("a newcomer completes lesson 1 and their first commit from the landing page
   // Try: git init (typed in Real-style)
   await type(page, "git init");
   await expect(page.getByText("Initialized empty Git repository")).toBeVisible();
-  await expect(page.getByRole("status").getByText("Nice!")).toBeVisible();
+  await expect(page.getByRole("status").getByText("Nice, Alex!")).toBeVisible();
   await page.getByRole("button", { name: /continue/i }).click();
 
   // Experiment → done
   await page.getByRole("button", { name: /done exploring/i }).click();
-  await expect(page.getByRole("heading", { name: "Lesson complete!" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Well done, Alex!" })).toBeVisible();
   await page.waitForTimeout(1200);
   await page.screenshot({ path: "e2e/screens/celebrate.png" });
   await page.getByRole("link", { name: /next: your first commit/i }).click();
@@ -50,7 +63,10 @@ test("a newcomer completes lesson 1 and their first commit from the landing page
   await expect(page.getByText("hello.txt exists but is untracked")).toBeVisible();
   await type(page, 'git add hello.txt && git commit -m "Add hello"');
   await page.getByRole("button", { name: /complete lesson/i }).click();
-  await expect(page.getByRole("heading", { name: "Lesson complete!" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Well done, Alex!" })).toBeVisible();
+  // back on the path, the finished lessons are shown
+  await page.goto("/learn");
+  await expect(page.getByRole("link", { name: /Your first commit/ })).toBeVisible();
 
   // Progress persisted
   await page.goto("/learn");
@@ -60,10 +76,8 @@ test("a newcomer completes lesson 1 and their first commit from the landing page
 });
 
 test("branch + merge journey and conflict resolution through the editor", async ({ page }) => {
-  // unlock everything via onboarding
-  await page.goto("/learn");
-  await page.getByLabel(/I use Git already/i).check();
-  await page.getByRole("button", { name: /let's go/i }).click();
+  // a learner who said they already use Git: everything is unlocked
+  await seedLearner(page, { experience: "comfortable" });
 
   await page.goto("/learn/merge-conflicts");
   await page.getByRole("button", { name: "Try to merge" }).click();
@@ -111,4 +125,25 @@ test("landing and encyclopedia render", async ({ page }) => {
   await expect(page.getByText("Successfully rebased")).toBeVisible();
   await page.waitForTimeout(1200);
   await page.screenshot({ path: "e2e/screens/commands.png" });
+});
+
+test("the whole app switches to French, including lessons and explanations", async ({ page }) => {
+  await seedLearner(page, { name: "Camille" });
+  await page.goto("/learn");
+  await page.getByRole("button", { name: "Choose language" }).click();
+  await page.getByRole("option", { name: /Français/ }).click();
+  await expect(page.getByRole("heading", { name: "Ton parcours" })).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("lang", "fr");
+  await page.getByRole("link", { name: /Git, c'est quoi/ }).first().click();
+  await expect(page.getByRole("heading", { name: /VRAIMENT_final/ })).toBeVisible();
+  await page.getByRole("button", { name: "Continuer" }).click();
+  await page.getByRole("button", { name: "Continuer" }).click();
+  await type(page, "git commit -m x");
+  await expect(page.getByText("En clair :", { exact: false })).toBeVisible();
+  await type(page, "git init");
+  await expect(page.getByText("Initialized empty Git repository")).toBeVisible(); // Git output stays English
+  await expect(page.getByRole("status").getByText("Bravo, Camille !")).toBeVisible();
+  // the choice is remembered
+  await page.reload();
+  await expect(page.getByText("Bravo, Camille !")).toBeVisible();
 });

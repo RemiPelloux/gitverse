@@ -6,6 +6,8 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
 import { ClipboardCopy, CornerDownLeft, Eraser, Lightbulb, Play, TextCursorInput } from "lucide-react";
 import type { OutLine } from "@/engine";
 import { explainTokens } from "@/features/docs/commands";
+import { useT, type T } from "@/i18n";
+import { translateExplain } from "@/i18n/engine-fr";
 import { complete, highlight, type Completion } from "./completion";
 import { useLab, type TermEntry } from "./store";
 
@@ -45,8 +47,10 @@ export function Terminal({ mode, suggestion, className, onModeChange, autoFocus,
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
+  const t = useT();
+  const locale = t.locale;
 
-  const completions = useMemo(() => (value ? complete(value, world).slice(0, 6) : []), [value, world]);
+  const completions = useMemo(() => (value ? complete(value, world, locale).slice(0, 6) : []), [value, world, locale]);
   const ghost = useMemo(() => {
     if (!value) return "";
     if (suggestion && suggestion.startsWith(value) && mode === "assisted") return suggestion.slice(value.length);
@@ -133,10 +137,10 @@ export function Terminal({ mode, suggestion, className, onModeChange, autoFocus,
   return (
     <div className={clsx("terminal flex h-full min-h-0 flex-col overflow-hidden bg-term font-mono text-[13px] leading-[1.55]", className)}>
       <div className="flex h-9 shrink-0 items-center gap-2 border-b border-white/5 px-3 text-xs text-[var(--t-muted)]">
-        <span className="truncate">bash — ~/project <span className="font-sans text-[var(--t-muted)]">· simulated</span></span>
+        <span className="truncate">bash — ~/project <span className="font-sans text-[var(--t-muted)]">{t("lab.terminal.simulated")}</span></span>
         <div className="ml-auto flex items-center gap-1">
           {onModeChange && (
-            <div className="mr-1 flex rounded-lg bg-white/5 p-0.5 font-sans" role="radiogroup" aria-label="Terminal mode">
+            <div className="mr-1 flex rounded-lg bg-white/5 p-0.5 font-sans" role="radiogroup" aria-label={t("lab.terminal.modeLabel")}>
               {(["assisted", "real"] as const).map((m) => (
                 <button
                   key={m}
@@ -145,18 +149,18 @@ export function Terminal({ mode, suggestion, className, onModeChange, autoFocus,
                   onClick={() => onModeChange(m)}
                   className={clsx("rounded-md px-2 py-0.5 text-[11px] transition-colors pointer-coarse:py-2", mode === m ? "bg-white/10 text-white" : "hover:text-white")}
                 >
-                  {m === "assisted" ? "Assisted" : "Real"}
+                  {m === "assisted" ? t("lab.terminal.assisted") : t("lab.terminal.real")}
                 </button>
               ))}
             </div>
           )}
-          <button onClick={copyOutput} className="rounded-md p-1 hover:bg-white/5 hover:text-white pointer-coarse:p-2.5" aria-label="Copy terminal output" title="Copy output">
+          <button onClick={copyOutput} className="rounded-md p-1 hover:bg-white/5 hover:text-white pointer-coarse:p-2.5" aria-label={t("lab.terminal.copyAria")} title={t("lab.terminal.copyTitle")}>
             <ClipboardCopy className="size-3.5" />
           </button>
-          <button onClick={clearTerminal} className="rounded-md p-1 hover:bg-white/5 hover:text-white pointer-coarse:p-2.5" aria-label="Clear terminal (Ctrl+L)" title="Clear (Ctrl+L)">
+          <button onClick={clearTerminal} className="rounded-md p-1 hover:bg-white/5 hover:text-white pointer-coarse:p-2.5" aria-label={t("lab.terminal.clearAria")} title={t("lab.terminal.clearTitle")}>
             <Eraser className="size-3.5" />
           </button>
-          {copied && <span className="font-sans text-[11px] text-[var(--t-green)]">Copied</span>}
+          {copied && <span className="font-sans text-[11px] text-[var(--t-green)]">{t("lab.terminal.copied")}</span>}
         </div>
       </div>
 
@@ -168,20 +172,20 @@ export function Terminal({ mode, suggestion, className, onModeChange, autoFocus,
         }}
         role="log"
         aria-live="polite"
-        aria-label="Terminal output"
+        aria-label={t("lab.terminal.outputLabel")}
       >
         {!entries.length && (
           <p className="text-[var(--t-muted)]">
-            {mode === "assisted" ? "Type a command, or use the suggestion below. Type help for a list of commands." : "Type help to list available commands."}
+            {mode === "assisted" ? t("lab.terminal.emptyAssisted") : t("lab.terminal.emptyReal")}
           </p>
         )}
         {entries.map((e) => (
-          <Entry key={e.id} entry={e} />
+          <Entry key={e.id} entry={e} plainWords={t("lab.terminal.plainWords")} explain={translateExplain(e.explain, locale)} />
         ))}
       </div>
 
       {mode === "assisted" && suggestion && (
-        <AssistBar suggestion={suggestion} onRun={() => submit(suggestion)} onInsert={() => { setValue(suggestion); inputRef.current?.focus(); }} compact={compact} />
+        <AssistBar suggestion={suggestion} onRun={() => submit(suggestion)} onInsert={() => { setValue(suggestion); inputRef.current?.focus(); }} compact={compact} t={t} />
       )}
 
       <div className="relative shrink-0 border-t border-white/5 px-3 py-2.5">
@@ -214,7 +218,7 @@ export function Terminal({ mode, suggestion, className, onModeChange, autoFocus,
           )}
         </AnimatePresence>
         <label className="flex items-center gap-2">
-          <span className="sr-only">Command</span>
+          <span className="sr-only">{t("lab.terminal.command")}</span>
           <Prompt branch={branch} />
           <div className="relative min-w-0 flex-1">
             <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden whitespace-pre">
@@ -249,17 +253,17 @@ export function Terminal({ mode, suggestion, className, onModeChange, autoFocus,
           <button
             onClick={() => submit()}
             className="grid size-7 place-items-center rounded-lg bg-white/5 text-[var(--t-muted)] hover:bg-white/10 hover:text-white sm:hidden"
-            aria-label="Run command"
+            aria-label={t("lab.terminal.runCommand")}
           >
             <CornerDownLeft className="size-3.5" />
           </button>
         </label>
         <p id="term-help" className="sr-only">
-          Press Enter to run. Tab completes. Up and down arrows browse history. Control L clears.
+          {t("lab.terminal.help")}
         </p>
         {ghost && !compact && (
           <p className="pointer-events-none mt-1 hidden font-sans text-[11px] text-[var(--t-muted)] sm:block">
-            <kbd className="rounded bg-white/5 px-1">Tab</kbd> to complete
+            <kbd className="rounded bg-white/5 px-1">Tab</kbd> {t("lab.terminal.toComplete")}
           </p>
         )}
       </div>
@@ -279,7 +283,7 @@ function Prompt({ branch }: { branch: string | null }) {
   );
 }
 
-function Entry({ entry }: { entry: TermEntry }) {
+function Entry({ entry, plainWords, explain }: { entry: TermEntry; plainWords: string; explain?: string }) {
   return (
     <div className="mb-2">
       <div className="flex flex-wrap gap-x-2">
@@ -297,7 +301,7 @@ function Entry({ entry }: { entry: TermEntry }) {
           {l.text || " "}
         </div>
       ))}
-      {entry.explain && (
+      {explain && (
         <motion.div
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
@@ -305,8 +309,8 @@ function Entry({ entry }: { entry: TermEntry }) {
         >
           <Lightbulb className="mt-0.5 size-4 shrink-0" aria-hidden />
           <span>
-            <span className="font-semibold">In plain words: </span>
-            {entry.explain}
+            <span className="font-semibold">{plainWords}</span>
+            {explain}
           </span>
         </motion.div>
       )}
@@ -314,8 +318,8 @@ function Entry({ entry }: { entry: TermEntry }) {
   );
 }
 
-function AssistBar({ suggestion, onRun, onInsert, compact }: { suggestion: string; onRun: () => void; onInsert: () => void; compact?: boolean }) {
-  const tokens = explainTokens(suggestion);
+function AssistBar({ suggestion, onRun, onInsert, compact, t }: { suggestion: string; onRun: () => void; onInsert: () => void; compact?: boolean; t: T }) {
+  const tokens = explainTokens(suggestion, t.locale);
   const tone: Record<string, string> = {
     program: "text-[var(--t-orange)]",
     command: "text-[var(--t-green)]",
@@ -327,22 +331,22 @@ function AssistBar({ suggestion, onRun, onInsert, compact }: { suggestion: strin
     <div className="shrink-0 border-t border-white/5 bg-white/[0.02] px-3 py-2">
       <div className="flex items-center gap-2">
         <span className="shrink-0 text-[var(--t-orange)]" aria-hidden>›</span>
-        <span className="font-sans text-[11px] text-[var(--t-muted)] ">Suggested</span>
+        <span className="font-sans text-[11px] text-[var(--t-muted)] ">{t("lab.terminal.suggested")}</span>
         <code className="min-w-0 truncate text-white">{suggestion}</code>
         <div className="ml-auto flex shrink-0 gap-1 font-sans">
-          <button onClick={onInsert} className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--t-muted)] hover:bg-white/5 hover:text-white" title="Put it in the input so you can type/edit it">
-            <TextCursorInput className="size-3.5" /> <span className="hidden sm:inline">Insert</span>
+          <button onClick={onInsert} className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--t-muted)] hover:bg-white/5 hover:text-white" title={t("lab.terminal.insertTitle")}>
+            <TextCursorInput className="size-3.5" /> <span className="hidden sm:inline">{t("lab.terminal.insert")}</span>
           </button>
           <button onClick={onRun} className="flex items-center gap-1 rounded-lg bg-[var(--accent)] px-2.5 py-1 text-xs font-medium text-white hover:brightness-110">
-            <Play className="size-3 fill-current" /> Run
+            <Play className="size-3 fill-current" /> {t("lab.terminal.run")}
           </button>
         </div>
       </div>
       {!compact && (
         <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 pl-5 font-sans text-[11px]">
-          {tokens.map((t, i) => (
+          {tokens.map((tok, i) => (
             <span key={i} className="text-[var(--t-muted)]">
-              <code className={clsx("font-mono", tone[t.kind])}>{t.text.length > 24 ? t.text.slice(0, 22) + "…" : t.text}</code> {t.meaning}
+              <code className={clsx("font-mono", tone[tok.kind])}>{tok.text.length > 24 ? tok.text.slice(0, 22) + "…" : tok.text}</code> {tok.meaning}
             </span>
           ))}
         </div>

@@ -11,43 +11,36 @@ export function levelFor(xp: number) {
   return { level, floor, ceil, progress: (xp - floor) / (ceil - floor) };
 }
 
-export const LEVEL_TITLES = [
-  "Curious Newcomer",
-  "First Snapshot",
-  "History Reader",
-  "Branch Explorer",
-  "Merge Maker",
-  "Conflict Tamer",
-  "Time Traveler",
-  "Remote Operator",
-  "Team Player",
-  "Git Wrangler",
-  "Git Sage",
-  "Gitverse Legend",
-];
+/** Titles live in the message dictionaries (`levels`), one per level. */
+export const LEVEL_COUNT = LEVELS.length;
 
 export interface AchievementDef {
   id: string;
-  title: string;
-  description: string;
   icon: string; // lucide icon name
 }
 
+/** Badge names and descriptions live in the message dictionaries (`badges.<id>`). */
 export const ACHIEVEMENTS: AchievementDef[] = [
-  { id: "hello-terminal", title: "Hello, terminal", description: "Run your first command.", icon: "TerminalSquare" },
-  { id: "ground-zero", title: "Ground zero", description: "Create your first repository.", icon: "FolderGit2" },
-  { id: "snapshot", title: "Say cheese", description: "Make your first commit.", icon: "Camera" },
-  { id: "branch-out", title: "Branching out", description: "Create a branch.", icon: "GitBranch" },
-  { id: "time-traveler", title: "Time traveler", description: "Visit an old commit in detached HEAD.", icon: "History" },
-  { id: "together", title: "Together again", description: "Merge two branches.", icon: "GitMerge" },
-  { id: "peacemaker", title: "Peacemaker", description: "Resolve a merge conflict.", icon: "Handshake" },
-  { id: "to-the-cloud", title: "To the cloud", description: "Push to the simulated GitHub.", icon: "CloudUpload" },
-  { id: "in-sync", title: "In sync", description: "Fetch new work from a teammate.", icon: "RefreshCw" },
-  { id: "rescuer", title: "Rescue mission", description: "Recover a lost commit with the reflog.", icon: "LifeBuoy" },
-  { id: "explorer", title: "Explorer", description: "Use 10 different Git commands.", icon: "Compass" },
-  { id: "foundations", title: "Foundations laid", description: "Complete Chapter 1.", icon: "Blocks" },
-  { id: "boss", title: "Boss slayer", description: "Defeat a boss challenge.", icon: "Swords" },
-  { id: "sandbox", title: "Mad scientist", description: "Experiment in the Playground.", icon: "FlaskConical" },
+  { id: "hello-terminal", icon: "TerminalSquare" },
+  { id: "ground-zero", icon: "FolderGit2" },
+  { id: "snapshot", icon: "Camera" },
+  { id: "branch-out", icon: "GitBranch" },
+  { id: "time-traveler", icon: "History" },
+  { id: "together", icon: "GitMerge" },
+  { id: "peacemaker", icon: "Handshake" },
+  { id: "to-the-cloud", icon: "CloudUpload" },
+  { id: "in-sync", icon: "RefreshCw" },
+  { id: "rescuer", icon: "LifeBuoy" },
+  { id: "explorer", icon: "Compass" },
+  { id: "foundations", icon: "Blocks" },
+  { id: "boss", icon: "Swords" },
+  { id: "sandbox", icon: "FlaskConical" },
+  { id: "flawless", icon: "Star" },
+  { id: "goal-getter", icon: "Target" },
+  { id: "on-fire", icon: "Flame" },
+  { id: "halfway", icon: "Milestone" },
+  { id: "graduate", icon: "GraduationCap" },
+  { id: "polyglot", icon: "Languages" },
 ];
 
 /** Achievement ids unlocked by a simulator event. */
@@ -86,19 +79,19 @@ export interface DayActivity {
 
 export const emptyDay = (): DayActivity => ({ xp: 0, lessons: 0, commands: [], commits: 0, playground: false });
 
+/** Quest titles live in the message dictionaries (`quests.<id>`). */
 export interface QuestDef {
   id: string;
-  title: string;
   target: number;
   progress: (d: DayActivity) => number;
 }
 
 const QUEST_POOL: QuestDef[] = [
-  { id: "lesson", title: "Complete a lesson", target: 1, progress: (d) => d.lessons },
-  { id: "xp", title: "Earn 100 XP", target: 100, progress: (d) => d.xp },
-  { id: "commands", title: "Use 4 different Git commands", target: 4, progress: (d) => d.commands.length },
-  { id: "commits", title: "Make 3 commits", target: 3, progress: (d) => d.commits },
-  { id: "playground", title: "Experiment in the Playground", target: 1, progress: (d) => (d.playground ? 1 : 0) },
+  { id: "lesson", target: 1, progress: (d) => d.lessons },
+  { id: "xp", target: 100, progress: (d) => d.xp },
+  { id: "commands", target: 4, progress: (d) => d.commands.length },
+  { id: "commits", target: 3, progress: (d) => d.commits },
+  { id: "playground", target: 1, progress: (d) => (d.playground ? 1 : 0) },
 ];
 
 export function dayKey(date = new Date()) {
@@ -125,3 +118,18 @@ export function streak(activity: Record<string, DayActivity>, today = new Date()
   }
   return n;
 }
+
+/** Stars for a finished lesson: finishing, solving without the walkthrough hint, and few mistakes. */
+export function starsFor(run: { walkthrough: boolean; mistakes: number }) {
+  return 1 + (run.walkthrough ? 0 : 1) + (run.mistakes <= 2 ? 1 : 0);
+}
+
+/** Bonus XP for a flawless (3-star) first completion. */
+export const FLAWLESS_XP = 15;
+
+export const DAILY_GOALS = [30, 60, 120] as const;
+export type DailyGoal = (typeof DAILY_GOALS)[number];
+
+/** Avatar colors (lane colors of the graph). */
+export const AVATAR_COLORS = ["lane-0", "lane-1", "lane-2", "lane-3", "lane-4", "lane-5"] as const;
+export type AvatarColor = (typeof AVATAR_COLORS)[number];

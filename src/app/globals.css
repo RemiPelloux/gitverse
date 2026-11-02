@@ -37,6 +37,12 @@
   --lane-4: #9b4a9b;
   --lane-5: #1f8a80;
   --shadow: 0 1px 0 rgba(43, 38, 32, 0.04);
+  --shadow-card: 0 1px 0 rgba(43, 38, 32, 0.05), 0 1px 3px rgba(43, 38, 32, 0.05);
+  --shadow-lg: 0 1px 0 rgba(43, 38, 32, 0.05), 0 12px 32px -8px rgba(43, 38, 32, 0.22);
+  --accent-deep: #8f2a12;
+  --edge: #bdb6a0; /* bottom edge of tactile buttons */
+  --star: #e3a008;
+  --dot: rgba(43, 38, 32, 0.09);
   color-scheme: light;
 }
 
@@ -70,6 +76,12 @@
   --lane-4: #d397c8;
   --lane-5: #7fcfc0;
   --shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+  --shadow-card: 0 1px 0 rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 16px 40px -8px rgba(0, 0, 0, 0.6);
+  --accent-deep: #7a230e;
+  --edge: #12110f;
+  --star: #f0c060;
+  --dot: rgba(238, 234, 224, 0.06);
   color-scheme: dark;
 }
 
@@ -121,7 +133,7 @@
   --color-t-orange: var(--t-orange);
   --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;
-  --radius-card: 0.625rem;
+  --radius-card: 0.875rem;
 }
 
 html {
@@ -214,4 +226,35 @@ select {
 
 .dash-flow {
   animation: dash 0.9s linear infinite;
+}
+
+/* Graph-paper dots behind hero areas. */
+.bg-dots {
+  background-image: radial-gradient(var(--dot) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+@keyframes float-up {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-28px);
+    opacity: 0;
+  }
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    transform: translate(-50%, 0);
+  }
+  50% {
+    transform: translate(-50%, -4px);
+  }
+}
+
+.bob {
+  animation: bob 1.6s ease-in-out infinite;
 }

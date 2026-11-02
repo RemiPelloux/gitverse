@@ -7,19 +7,21 @@ import { Play, RotateCcw } from "lucide-react";
 import { execute, type GitEvent, type World } from "@/engine";
 import { scenario } from "@/features/curriculum/scenario";
 import { GitGraph } from "@/features/lab/git-graph";
+import { useT } from "@/i18n";
 
 const SCRIPT = [
-  { cmd: 'git commit -m "Add homepage"', note: "A commit is a snapshot. A new circle appears." },
-  { cmd: "git switch -c feature/login", note: "A branch: a new timeline. HEAD moves onto it." },
-  { cmd: 'echo "login" > login.html && git add . && git commit -m "Login page"', note: "Only feature/login moves. main stays safe." },
-  { cmd: "git switch main", note: "Back to main — login.html disappears from your files." },
-  { cmd: "git merge feature/login", note: "Merged! main now includes the login page." },
-];
+  { cmd: 'git commit -m "Add homepage"', note: "lab.hero.notes.commit" },
+  { cmd: "git switch -c feature/login", note: "lab.hero.notes.branch" },
+  { cmd: 'echo "login" > login.html && git add . && git commit -m "Login page"', note: "lab.hero.notes.work" },
+  { cmd: "git switch main", note: "lab.hero.notes.back" },
+  { cmd: "git merge feature/login", note: "lab.hero.notes.merge" },
+] as const;
 
 const initialWorld = () => scenario().run("git init").commit("Initial commit", { "README.md": "# Hi\n" }).files({ "index.html": "<h1>Hello</h1>\n" }).run("git add .").done();
 
 /** The core interaction, right on the landing page: run a command, see what happened. */
 export function HeroDemo() {
+  const t = useT();
   const [world, setWorld] = useState<World>(initialWorld);
   const [i, setI] = useState(0);
   const [log, setLog] = useState<Array<{ cmd: string; out: string[] }>>([]);
@@ -57,7 +59,7 @@ export function HeroDemo() {
               ))}
             </div>
           ))}
-          {!log.length && <p className="text-[var(--t-muted)]">A real (simulated) Git repository. Press the button to run the next command →</p>}
+          {!log.length && <p className="text-[var(--t-muted)]">{t("lab.hero.idle")}</p>}
         </div>
         <div className="mt-3 flex items-center gap-3 border-t border-white/5 pt-3 font-sans">
           {i < SCRIPT.length ? (
@@ -67,12 +69,12 @@ export function HeroDemo() {
             </button>
           ) : (
             <button onClick={reset} className="flex items-center gap-2 rounded-md bg-white/10 px-3 py-2 text-xs text-white hover:bg-white/15">
-              <RotateCcw className="size-3.5" /> Play again
+              <RotateCcw className="size-3.5" /> {t("lab.hero.playAgain")}
             </button>
           )}
           <AnimatePresence mode="wait">
             <motion.p key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-w-0 text-xs text-[var(--t-muted)]">
-              {i > 0 ? SCRIPT[i - 1].note : "5 commands. One complete Git story."}
+              {i > 0 ? t(SCRIPT[i - 1].note) : t("lab.hero.tagline")}
             </motion.p>
           </AnimatePresence>
         </div>

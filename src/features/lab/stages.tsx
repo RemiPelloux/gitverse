@@ -5,11 +5,15 @@ import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { useId, useMemo, useState } from "react";
 import { ArrowRight, Cloud, FileText, FolderOpen, Inbox, Laptop, PackageCheck, X } from "lucide-react";
 import { ancestors, headCommit, shortId, status, type Commit, type FileMap, type World } from "@/engine";
+import { useT } from "@/i18n";
+
+type NoteKey = "untrackedNoRepo" | "conflict" | "new" | "modified" | "deleted" | "committed" | "onGitHub";
 
 interface Chip {
   path: string;
   tone: "bad" | "warn" | "ok" | "accent" | "info";
-  note: string;
+  /** Message key under lab.stages.notes. */
+  note: NoteKey;
   content?: string;
 }
 
@@ -28,7 +32,7 @@ function zones(world: World) {
   let remoteCommit: Commit | null = null;
   let unpushed = 0;
   if (!repo) {
-    for (const p of Object.keys(world.workdir).sort()) work.push({ path: p, tone: "info", note: "not tracked — no repository", content: world.workdir[p] });
+    for (const p of Object.keys(world.workdir).sort()) work.push({ path: p, tone: "info", note: "untrackedNoRepo", content: world.workdir[p] });
     return { work, stage, local, remote, localCommit, remoteCommit, unpushed, hasRemote: false };
   }
   const st = status(world);
@@ -62,7 +66,7 @@ function zones(world: World) {
   if (remoteCommit) {
     const parent = remoteCommit.parents[0] ? repo.commits[remoteCommit.parents[0]]?.tree ?? {} : {};
     const takenAll = new Set([...taken, ...local.map((c) => c.path)]);
-    for (const p of changedBetween(parent, remoteCommit.tree)) if (!takenAll.has(p)) remote.push({ path: p, tone: "info", note: "on GitHub", content: remoteCommit.tree[p] });
+    for (const p of changedBetween(parent, remoteCommit.tree)) if (!takenAll.has(p)) remote.push({ path: p, tone: "info", note: "onGitHub", content: remoteCommit.tree[p] });
   }
   return { work, stage, local, remote, localCommit, remoteCommit, unpushed, hasRemote };
 }
@@ -79,42 +83,44 @@ export function StagesVisualizer({ world, showRemote = true, className }: { worl
   const z = useMemo(() => zones(world), [world]);
   const [inspect, setInspect] = useState<{ zone: string; chip: Chip } | null>(null);
   const group = useId();
+  const t = useT();
+  const nFiles = Object.keys(world.workdir).length;
   const cols: Array<{ id: string; title: string; icon: React.ReactNode; chips: Chip[]; empty: string; foot?: string; arrow?: string }> = [
     {
       id: "work",
-      title: "Working directory",
+      title: t("lab.stages.work"),
       icon: <FolderOpen className="size-4" />,
       chips: z.work,
-      empty: world.repo ? "No unsaved changes" : "Empty folder",
-      foot: `${Object.keys(world.workdir).length} file${Object.keys(world.workdir).length === 1 ? "" : "s"} on disk`,
+      empty: world.repo ? t("lab.stages.noChanges") : t("lab.stages.emptyFolder"),
+      foot: t(nFiles === 1 ? "lab.stages.filesOnDiskOne" : "lab.stages.filesOnDiskOther", { n: nFiles }),
       arrow: "git add",
     },
     {
       id: "stage",
-      title: "Staging area",
+      title: t("lab.stages.stage"),
       icon: <Inbox className="size-4" />,
       chips: z.stage,
-      empty: world.repo ? "Nothing staged" : "Needs git init",
-      foot: "the next snapshot",
+      empty: world.repo ? t("lab.stages.nothingStaged") : t("lab.stages.needsInit"),
+      foot: t("lab.stages.nextSnapshot"),
       arrow: "git commit",
     },
     {
       id: "local",
-      title: "Local repository",
+      title: t("lab.stages.local"),
       icon: <Laptop className="size-4" />,
       chips: z.local,
-      empty: z.localCommit ? "Up to date" : "No commits yet",
-      foot: z.localCommit ? `HEAD · ${shortId(z.localCommit.id)}${z.unpushed ? ` · ${z.unpushed} not pushed` : ""}` : undefined,
+      empty: z.localCommit ? t("lab.stages.upToDate") : t("lab.stages.noCommits"),
+      foot: z.localCommit ? `HEAD · ${shortId(z.localCommit.id)}${z.unpushed ? ` · ${t("lab.stages.notPushed", { n: z.unpushed })}` : ""}` : undefined,
       arrow: showRemote ? "git push" : undefined,
     },
   ];
   if (showRemote)
     cols.push({
       id: "remote",
-      title: "Remote (GitHub)",
+      title: t("lab.stages.remote"),
       icon: <Cloud className="size-4" />,
       chips: z.remote,
-      empty: z.hasRemote ? (z.remoteCommit ? "In sync" : "Nothing pushed yet") : "No remote linked",
+      empty: z.hasRemote ? (z.remoteCommit ? t("lab.stages.inSync") : t("lab.stages.nothingPushed")) : t("lab.stages.noRemote"),
       foot: z.remoteCommit ? `origin · ${shortId(z.remoteCommit.id)}` : undefined,
     });
 
@@ -140,11 +146,11 @@ export function StagesVisualizer({ world, showRemote = true, className }: { worl
                       transition={{ type: "spring", stiffness: 300, damping: 28 }}
                       onClick={() => setInspect({ zone: col.title, chip: c })}
                       className={clsx("flex min-w-0 items-center gap-1.5 rounded-lg border px-2 py-1 text-left text-xs", TONE[c.tone])}
-                      title={`Inspect ${c.path} in ${col.title}`}
+                      title={t("lab.stages.inspect", { path: c.path, zone: col.title })}
                     >
                       <FileText className="size-3.5 shrink-0" aria-hidden />
                       <span className="min-w-0 truncate font-mono">{c.path}</span>
-                      <span className="ml-auto shrink-0 text-[11px] opacity-80">{c.note}</span>
+                      <span className="ml-auto shrink-0 text-[11px] opacity-80">{t(`lab.stages.notes.${c.note}`)}</span>
                     </motion.button>
                   ))}
                 </AnimatePresence>
@@ -179,14 +185,14 @@ export function StagesVisualizer({ world, showRemote = true, className }: { worl
               <PackageCheck className="size-4 text-accent-fg" />
               <p className="text-xs">
                 <span className="font-mono font-medium">{inspect.chip.path}</span>
-                <span className="text-fg-3"> in {inspect.zone}</span>
+                <span className="text-fg-3">{t("lab.stages.inZone", { zone: inspect.zone })}</span>
               </p>
-              <button className="ml-auto rounded-md p-1 text-fg-3 hover:text-fg" onClick={() => setInspect(null)} aria-label="Close inspector">
+              <button className="ml-auto rounded-md p-1 text-fg-3 hover:text-fg" onClick={() => setInspect(null)} aria-label={t("lab.stages.closeInspector")}>
                 <X className="size-3.5" />
               </button>
             </div>
             <pre className="mt-2 rounded-lg bg-surface-2 p-2 font-mono text-[12px] whitespace-pre-wrap text-fg-2">
-              {inspect.chip.content === undefined ? "(file deleted in this version)" : inspect.chip.content || "(empty file)"}
+              {inspect.chip.content === undefined ? t("lab.stages.fileDeleted") : inspect.chip.content || t("lab.stages.emptyFile")}
             </pre>
           </motion.div>
         )}
