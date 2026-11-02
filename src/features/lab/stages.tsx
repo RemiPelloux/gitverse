@@ -82,6 +82,7 @@ const TONE: Record<Chip["tone"], string> = {
 export function StagesVisualizer({ world, showRemote = true, className }: { world: World; showRemote?: boolean; className?: string }) {
   const z = useMemo(() => zones(world), [world]);
   const [inspect, setInspect] = useState<{ zone: string; chip: Chip } | null>(null);
+  const isOpen = (zone: string, path: string) => inspect?.zone === zone && inspect.chip.path === path;
   const group = useId();
   const t = useT();
   const nFiles = Object.keys(world.workdir).length;
@@ -144,8 +145,13 @@ export function StagesVisualizer({ world, showRemote = true, className }: { worl
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.9 }}
                       transition={{ type: "spring", stiffness: 300, damping: 28 }}
-                      onClick={() => setInspect({ zone: col.title, chip: c })}
-                      className={clsx("flex min-w-0 items-center gap-1.5 rounded-lg border px-2 py-1 text-left text-xs", TONE[c.tone])}
+                      onClick={() => setInspect(isOpen(col.title, c.path) ? null : { zone: col.title, chip: c })}
+                      aria-expanded={isOpen(col.title, c.path)}
+                      className={clsx(
+                        "flex min-w-0 items-center gap-1.5 rounded-lg border px-2 py-1 text-left text-xs transition-shadow",
+                        TONE[c.tone],
+                        isOpen(col.title, c.path) && "ring-2 ring-accent-mark/60",
+                      )}
                       title={t("lab.stages.inspect", { path: c.path, zone: col.title })}
                     >
                       <FileText className="size-3.5 shrink-0" aria-hidden />
@@ -173,13 +179,15 @@ export function StagesVisualizer({ world, showRemote = true, className }: { worl
           <span key={c.id}>{c.arrow} →</span>
         ))}
       </div>
-      <AnimatePresence>
+      {/* Inline preview below the zones, so it never covers them. */}
+      <AnimatePresence initial={false}>
         {inspect && (
           <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 6 }}
-            className="absolute inset-x-0 bottom-0 z-10 max-h-[80%] overflow-auto rounded-lg border border-line bg-elevated p-3 shadow-[var(--shadow)]"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.18 }}
+            className="mt-2 max-h-48 overflow-auto rounded-lg border border-line bg-elevated p-3 shadow-[var(--shadow-card)]"
           >
             <div className="flex items-center gap-2">
               <PackageCheck className="size-4 text-accent-fg" />

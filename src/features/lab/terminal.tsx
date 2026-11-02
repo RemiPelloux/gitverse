@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
 import { ClipboardCopy, CornerDownLeft, Eraser, Lightbulb, Play, TextCursorInput } from "lucide-react";
 import type { OutLine } from "@/engine";
 import { explainTokens } from "@/features/docs/commands";
+import { useProgress } from "@/features/progress/store";
 import { useT, type T } from "@/i18n";
 import { translateExplain } from "@/i18n/engine-fr";
 import { complete, highlight, type Completion } from "./completion";
@@ -271,10 +272,19 @@ export function Terminal({ mode, suggestion, className, onModeChange, autoFocus,
   );
 }
 
+/** The prompt shows the learner's name, like a real shell shows the user. */
 function Prompt({ branch }: { branch: string | null }) {
+  const name = useProgress((s) => s.name);
+  const user =
+    name
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[^\w]+/g, "")
+      .slice(0, 16) || "you";
   return (
     <span className="shrink-0 select-none">
-      <span className="text-[var(--t-green)]">you</span>
+      <span className="text-[var(--t-green)]">{user}</span>
       <span className="text-[var(--t-muted)]">:</span>
       <span className="text-[var(--t-blue)]">~/project</span>
       {branch && <span className="text-[var(--t-orange)]"> ({branch})</span>}

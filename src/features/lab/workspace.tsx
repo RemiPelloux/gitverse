@@ -165,7 +165,7 @@ export function Workspace({
         showStages ? "border-accent/40 bg-accent-soft text-accent-fg" : "border-line bg-surface text-fg-2 hover:text-fg",
       )}
     >
-      <Layers className="size-3.5" /> {showStages ? t("lab.workspace.hideStages") : t("lab.workspace.showStages")}
+      <Layers className="size-3.5" /> {showStages ? t("lab.workspace.hideStages", { n: ui.remote ? 4 : 3 }) : t("lab.workspace.showStages", { n: ui.remote ? 4 : 3 })}
     </button>
   );
 

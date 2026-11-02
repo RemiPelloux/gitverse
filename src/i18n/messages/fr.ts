@@ -154,7 +154,7 @@ export const fr: Messages = {
     playground: "Expérimente dans le bac à sable",
   },
   toast: {
-    discovered: "Nouvelle commande découverte : git {cmd}",
+    discovered: "Nouvelle commande : git {cmd}",
     badge: "Badge débloqué : {title}",
     quest: "Quête du jour terminée : {title}",
     goal: "Objectif du jour atteint !",

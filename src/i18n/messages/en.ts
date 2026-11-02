@@ -153,7 +153,7 @@ export const en = {
     playground: "Experiment in the Playground",
   },
   toast: {
-    discovered: "New command discovered: git {cmd}",
+    discovered: "New command: git {cmd}",
     badge: "Badge unlocked: {title}",
     quest: "Daily quest complete: {title}",
     goal: "Daily goal reached!",
