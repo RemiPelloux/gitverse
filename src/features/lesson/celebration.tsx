@@ -40,6 +40,12 @@ export function Celebration({
   const [prevBest] = useState(() => useProgress.getState().completed[lesson.id]?.stars ?? 0);
   const stars = starsFor(stats);
 
+  const setQuietToasts = useProgress((s) => s.setQuietToasts);
+  useEffect(() => {
+    setQuietToasts(true);
+    return () => setQuietToasts(false);
+  }, [setQuietToasts]);
+
   useEffect(() => {
     if (done.current) return;
     done.current = true;

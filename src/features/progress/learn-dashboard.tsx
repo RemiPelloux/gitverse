@@ -272,9 +272,10 @@ function ChapterTrail({ chapter, nextId }: { chapter: Chapter; nextId?: string }
           <li className="px-1 py-1 text-xs text-fg-3">· {t("common.comingSoon")}</li>
         </ul>
       ) : (
-        <div className="relative mx-auto" style={{ height, width: "100%", maxWidth: 420 }}>
-          <svg className="absolute top-0 left-1/2 overflow-visible" width="1" height={height} aria-hidden>
-            <path d={path} fill="none" stroke="var(--border-strong)" strokeWidth="5" strokeLinecap="round" strokeDasharray="1 11" />
+        <div className="relative mx-auto [--amp:0.62] sm:[--amp:1]" style={{ height, width: "100%", maxWidth: 420 }}>
+          {/* The curve is drawn at full width and squeezed horizontally on phones (--amp). */}
+          <svg className="absolute top-0 left-1/2 origin-left overflow-visible [transform:scaleX(var(--amp))]" width="1" height={height} aria-hidden>
+            <path d={path} fill="none" stroke="var(--border-strong)" strokeWidth="5" strokeLinecap="round" strokeDasharray="1 11" vectorEffect="non-scaling-stroke" />
             {doneUpTo >= 0 && (
               <motion.path
                 d={donePath}
@@ -282,6 +283,7 @@ function ChapterTrail({ chapter, nextId }: { chapter: Chapter; nextId?: string }
                 stroke={lane}
                 strokeWidth="5"
                 strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
                 initial={{ pathLength: 0 }}
                 animate={{ pathLength: 1 }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
@@ -304,7 +306,7 @@ function ChapterTrail({ chapter, nextId }: { chapter: Chapter; nextId?: string }
                   next={n.lesson.id === nextId}
                 />
               ) : (
-                <li key={n.upcoming} className="absolute flex w-36 -translate-x-1/2 flex-col items-center text-center" style={{ left: `calc(50% + ${pts[i].x}px)`, top: pts[i].y - 26 }}>
+                <li key={n.upcoming} className="absolute flex w-36 -translate-x-1/2 flex-col items-center text-center" style={{ left: `calc(50% + ${pts[i].x}px * var(--amp))`, top: pts[i].y - 26 }}>
                   <span className="grid size-[52px] place-items-center rounded-full border-2 border-dashed border-line-strong bg-surface text-fg-3">
                     <Lock className="size-4" />
                   </span>
@@ -396,7 +398,7 @@ function TrailNode({
       ) : null}
     </>
   );
-  const pos = { left: `calc(50% + ${x}px)`, top: y - size / 2 };
+  const pos = { left: `calc(50% + ${x}px * var(--amp))`, top: y - size / 2 };
   const cls = "group absolute flex w-36 -translate-x-1/2 flex-col items-center text-center outline-none";
   return (
     <li className="contents">

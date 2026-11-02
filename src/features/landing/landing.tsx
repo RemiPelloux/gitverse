@@ -134,7 +134,7 @@ export function Landing() {
         </section>
 
         <section className="mx-auto max-w-6xl px-4 pt-14 pb-20">
-          <div className="flex flex-col gap-6 border-t border-line pt-10 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-xl font-semibold tracking-tight">{t("landing.ctaTitle")}</h2>
               <p className="mt-1 max-w-xl text-sm text-fg-2">
