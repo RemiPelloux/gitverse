@@ -77,7 +77,7 @@ const cherryPick: Lesson = {
         "Hidden in the middle is “Fix price rounding”: prices show as €3.5 instead of €3.50. Customers see that today, so main needs the fix now. Merging would bring the half-built checkout along with it.",
         "git cherry-pick copies just one commit's change onto the branch you're on. You pick it by its id.",
       ],
-      scene: "branch-split",
+      scene: "repo-state",
     },
     {
       kind: "try",
@@ -215,7 +215,7 @@ const stash: Lesson = {
         "Then Maya messages you: the live site says “Opne every day”. Can you fix it on main right now?",
         "You don't want to commit half-done work just to switch branches. git stash puts your edits aside, gives you clean files, and gives them back when you're ready.",
       ],
-      scene: "three-areas",
+      scene: "repo-state",
     },
     {
       kind: "experiment",
@@ -358,7 +358,7 @@ const tags: Lesson = {
         "A tag is a name stuck on one commit, like v1.0.0. A branch label moves forward every time you commit. A tag stays where you put it, so v1.0.0 means the same snapshot forever.",
         "There are two kinds. A lightweight tag (git tag v0.9) is just the name. An annotated tag (git tag -a v1.0.0 -m \"First launch\") also stores who made it, when, and a message. Use annotated tags for releases.",
       ],
-      scene: "history",
+      scene: "repo-state",
     },
     {
       kind: "try",

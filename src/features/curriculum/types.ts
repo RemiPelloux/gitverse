@@ -29,7 +29,9 @@ export type SceneId =
   | "conflict"
   | "remote"
   | "fetch-pull"
-  | "undo";
+  | "undo"
+  /** The lesson's own starting repository, drawn as a graph (not an interactive demo). */
+  | "repo-state";
 
 export interface DiscoverStep {
   kind: "discover";

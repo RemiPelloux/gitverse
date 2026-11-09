@@ -236,6 +236,7 @@ export const fr: Messages = {
     stepsNav: "Étapes de la leçon",
     watchStart: "Appuie sur « Commande suivante » pour lancer la première étape.",
     watchHint: "Regarde ce que chaque commande change dans le graphe.",
+    repoNow: "Ton dépôt en ce moment. Tu vas travailler dessus dans les étapes suivantes.",
     rewind: "Revenir",
     previousCommand: "Commande précédente",
     nextCommand: "Commande suivante",

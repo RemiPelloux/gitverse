@@ -256,7 +256,7 @@ function LessonRuntime({ lesson }: { lesson: Lesson }) {
                     ))}
                   </div>
                   <div className="mt-6">
-                    <Scene id={current.scene} />
+                    {current.scene === "repo-state" ? <RepoState world={start} /> : <Scene id={current.scene} />}
                   </div>
                 </FocusCard>
               )}
@@ -291,6 +291,19 @@ function LessonRuntime({ lesson }: { lesson: Lesson }) {
       </div>
       <CheatsheetDrawer open={sheetOpen} onClose={closeSheet} commands={lesson.commands} />
     </LabProvider>
+  );
+}
+
+/** The learner's actual starting repository, for advanced lessons' intros. */
+function RepoState({ world }: { world: World }) {
+  const t = useT();
+  return (
+    <figure className="overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface shadow-[var(--shadow-card)]">
+      <div className="h-60 bg-surface-2/30">
+        <GitGraph world={world} compact />
+      </div>
+      <figcaption className="border-t border-line px-4 py-2.5 text-sm text-fg-2">{t("lesson.repoNow")}</figcaption>
+    </figure>
   );
 }
 

@@ -101,7 +101,7 @@ const githubFlow: Lesson = {
         "Every change goes around the same loop, called GitHub Flow: start from an up-to-date main, branch, commit small, push, open a pull request, get a review, merge, then come back to main and clean up.",
         "Running the loop the same way every time is what makes it fast. Watch it once from start to finish, then you'll do it yourself.",
       ],
-      scene: "branch-split",
+      scene: "repo-state",
     },
     {
       kind: "watch",
@@ -302,7 +302,7 @@ const trunkBased: Lesson = {
         "Trunk-based: tiny commits land on main directly (or through pull requests merged within hours), many times a day. It fits teams with strong automated tests and continuous deployment, where waiting is the bigger risk.",
         "Both share the same goal: main stays releasable, and nobody's work drifts far from it. Feature flags make that possible even for half-built features.",
       ],
-      scene: "branch-split",
+      scene: "repo-state",
     },
     {
       kind: "challenge",
@@ -435,7 +435,7 @@ const releases: Lesson = {
         "PATCH (1.4.2 → 1.4.3): bug fixes only. MINOR (1.4.3 → 1.5.0): new features, and nothing that worked before breaks. MAJOR (1.5.0 → 2.0.0): a breaking change, so users must adapt. 1.0.0 is the first version you promise to keep stable.",
         "In Git, a version is a tag: a label on one commit that never moves, unlike a branch. The coffee shop you just cloned is ready to ship. It becomes v1.0.0.",
       ],
-      scene: "history",
+      scene: "repo-state",
     },
     {
       kind: "try",
@@ -471,7 +471,7 @@ const releases: Lesson = {
         "The answer is a hotfix branch that starts from the tag, not from main: git switch -c hotfix/1.0.1 v1.0.0. You get exactly what users have, fix only the bug, and release 1.0.1 (a PATCH: a fix, nothing new).",
         "Then bring the fix back to main, with git merge or git cherry-pick. Otherwise the next release brings the bug back.",
       ],
-      scene: "branch-split",
+      scene: "repo-state",
     },
     {
       kind: "challenge",

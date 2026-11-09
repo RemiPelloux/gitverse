@@ -235,6 +235,7 @@ export const en = {
     stepsNav: "Lesson steps",
     watchStart: "Press “Next command” to run the first step.",
     watchHint: "Watch what each command changes in the graph.",
+    repoNow: "Your repository right now. You'll work on it in the next steps.",
     rewind: "Rewind",
     previousCommand: "Previous command",
     nextCommand: "Next command",

@@ -90,7 +90,7 @@ const bisect: Lesson = {
         "You could check them one by one. Or you could play “higher or lower”: test the commit in the middle. If it's broken, the bug is in the older half; if it's fine, it's in the newer half. Every check cuts the suspects in half.",
         "That's what git bisect does. You tell it one bad commit and one good commit, and it walks you to the culprit in about 3 checks instead of 9.",
       ],
-      scene: "history",
+      scene: "repo-state",
     },
     {
       kind: "try",
@@ -248,7 +248,7 @@ const gitignore: Lesson = {
         "None of it belongs in history. Libraries come back with npm install, build files come back with a build, and a secret in a commit stays readable forever by anyone with a copy.",
         "A file called .gitignore lists patterns. Git then pretends those files don't exist: status stops mentioning them and git add . skips them.",
       ],
-      scene: "three-areas",
+      scene: "repo-state",
     },
     {
       kind: "try",
@@ -434,7 +434,7 @@ const hooks: Lesson = {
         "A hook is a script Git runs at a key moment: pre-commit runs before a commit is made, commit-msg checks the message, pre-push runs before anything is sent to GitHub. If the script fails, Git stops.",
         "Maya put the team's hooks in the .githooks folder of the repo you cloned. They're not switched on yet: Git never runs code from a repository just because you cloned it. Imagine cloning a stranger's project and having it run a script on your machine!",
       ],
-      scene: "repository",
+      scene: "repo-state",
     },
     {
       kind: "try",
