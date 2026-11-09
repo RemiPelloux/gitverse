@@ -49,6 +49,8 @@ const stepLabel = (t: ReturnType<typeof useT>, kind: Step["kind"]) => t(`steps.$
 export interface RunStats {
   mistakes: number;
   walkthrough: boolean;
+  /** True during Experiment steps: free play, where some commands are meant to fail. */
+  exploring?: boolean;
 }
 
 export function LessonPlayer({ lessonId }: { lessonId: string }) {
@@ -86,8 +88,8 @@ function LessonRuntime({ lesson }: { lesson: Lesson }) {
   const learnerName = useProgress((s) => s.name);
   const fresh = () => withLearner(lesson.setup(), useProgress.getState().name);
   const [start, setStart] = useState<World>(() => save?.start ?? fresh());
-  const [stats, setStats] = useState<RunStats>({ mistakes: 0, walkthrough: false });
   const [step, setStep] = useState(() => Math.min(save?.step ?? 0, lesson.steps.length - 1));
+  const [stats, setStats] = useState<RunStats>(() => ({ mistakes: 0, walkthrough: false, exploring: lesson.steps[step]?.kind === "experiment" }));
   const [ran, setRan] = useState<string[]>([]);
   const [openedAt] = useState(() => Date.now());
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -103,9 +105,10 @@ function LessonRuntime({ lesson }: { lesson: Lesson }) {
       save?.world ?? start,
       (r) => {
         if (r.command) recordCommand(r.command, r.ok, r.events, "lesson");
+        // A failed command counts as a mistake, except an intended stop (conflict, bisect)
+        // or free play in an Experiment step.
+        if (!r.ok && r.command && !r.world.repo?.op) setStats((st) => (st.exploring ? st : { ...st, mistakes: st.mistakes + 1 }));
         if (r.ok && r.command) setRan((x) => [...x, r.command!]);
-        // A failed command that isn't an intended conflict counts as a mistake.
-        if (!r.ok && r.command && !r.world.repo?.op) setStats((st) => ({ ...st, mistakes: st.mistakes + 1 }));
       },
       save?.terminal,
     ),
@@ -144,15 +147,18 @@ function LessonRuntime({ lesson }: { lesson: Lesson }) {
     return () => setHold(false);
   }, [current.kind, setHold]);
   const goto = (i: number) => {
-    setStep(Math.max(0, Math.min(lesson.steps.length - 1, i)));
+    const next = Math.max(0, Math.min(lesson.steps.length - 1, i));
+    setStep(next);
     setRan([]);
+    const exploring = lesson.steps[next].kind === "experiment";
+    setStats((st) => (st.exploring === exploring ? st : { ...st, exploring }));
   };
   const restart = () => {
     const w = fresh();
     setStart(w);
     store.getState().reset(w, "Lesson start");
     clearLesson(lesson.id);
-    setStats({ mistakes: 0, walkthrough: false });
+    setStats({ mistakes: 0, walkthrough: false, exploring: lesson.steps[0].kind === "experiment" });
     goto(0);
   };
 
@@ -207,7 +213,7 @@ function LessonRuntime({ lesson }: { lesson: Lesson }) {
         ))}
       </nav>
       <div className="ml-auto flex items-center gap-2 md:ml-0">
-        <span className="hidden items-center gap-1 rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold text-warn sm:flex">
+        <span className="hidden shrink-0 items-center gap-1 rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold whitespace-nowrap text-warn sm:flex">
           <GitCommitHorizontal className="size-3.5" /> {lesson.xp} XP
         </span>
         {usesWorkspace && (

@@ -2,6 +2,8 @@ import { Ctx, fail } from "../context";
 import { shortId } from "../hash";
 import { addReflog, ancestors, currentBranch, headCommitId, newRepo } from "../repo";
 import type { Commit, Repo, World } from "../types";
+import { onBranchPushed } from "../github/hosted";
+import { hookExplain, runHook } from "../hooks";
 import { gitMerge, gitRebase } from "./branching";
 import { requireRepo } from "./helpers";
 
@@ -143,7 +145,7 @@ export function gitRemote(ctx: Ctx, args: string[]) {
   fail(`error: unknown subcommand: ${sub}`);
 }
 
-const PUSH_FLAGS = new Set(["-u", "--set-upstream", "-f", "--force", "--force-with-lease", "--tags", "-d", "--delete", "--all", "-v", "--verbose", "-q", "--quiet"]);
+const PUSH_FLAGS = new Set(["-u", "--set-upstream", "-f", "--force", "--force-with-lease", "--tags", "-d", "--delete", "--all", "-v", "--verbose", "-q", "--quiet", "--no-verify"]);
 
 export function gitPush(ctx: Ctx, args: string[]) {
   const repo = requireRepo(ctx);
@@ -179,6 +181,8 @@ export function gitPush(ctx: Ctx, args: string[]) {
     }
   }
   const url = remoteUrl(repo, remoteName);
+  // pre-push hook (core.hooksPath): runs before anything is sent; --no-verify skips it.
+  if (!has("--no-verify") && !runHook(ctx, "pre-push", {}, [remoteName, url])) fail([], hookExplain("pre-push", "pushing"));
   const host = hosted(ctx.world, url);
   if (!refspecs.length && !pushTags && !all) {
     if (!branch) fail("fatal: You are not currently on a branch.", "You're in detached HEAD. Create a branch first with git switch -c <name>, or push explicitly: git push origin HEAD:<branch>.");
@@ -190,7 +194,22 @@ export function gitPush(ctx: Ctx, args: string[]) {
 
   const lines: Array<{ text: string; kind: "success" | "out" }> = [];
   const rejected: string[] = [];
+  const notes: string[] = [];
   let objects = 0;
+
+  const protectedReject = (refLabel: string, dst: string, deleting = false) =>
+    fail(
+      [
+        `remote: error: GH006: Protected branch update failed for refs/heads/${dst}.`,
+        deleting ? "remote: error: Cannot delete this protected branch" : "remote: error: Changes must be made through a pull request.",
+        `To ${url}`,
+        ` ! [remote rejected] ${refLabel} (protected branch hook declined)`,
+        `error: failed to push some refs to '${url}'`,
+      ],
+      deleting
+        ? `${dst} is a protected branch on GitHub, so it can't be deleted. Protection keeps important branches like ${dst} safe from accidents.`
+        : `${dst} is a protected branch on GitHub: nobody may push to it directly, every change has to arrive through a pull request. Move your commit to a new branch (git switch -c my-change), push that branch (git push -u origin my-change) and open a pull request with gh pr create. Then reset your local ${dst} to origin/${dst}.`,
+    );
 
   const pushRef = (srcName: string, dst: string) => {
     // tags
@@ -205,6 +224,9 @@ export function gitPush(ctx: Ctx, args: string[]) {
       objects += transfer(repo.commits, ctx.world.hostedCommits, id);
       lines.push({ text: ` * [new tag]         ${srcName} -> ${dst}`, kind: "success" });
       host.tags[dst] = id;
+      const meta = repo.tagMeta?.[srcName];
+      if (meta) (host.tagMeta ??= {})[dst] = { ...meta };
+      else if (host.tagMeta) delete host.tagMeta[dst];
       return;
     }
     const src = srcName === "HEAD" ? headCommitId(repo) : repo.branches[srcName];
@@ -218,6 +240,7 @@ export function gitPush(ctx: Ctx, args: string[]) {
       repo.remoteRefs[`${remoteName}/${dst}`] = src;
       return;
     }
+    if (old && host.protection?.[dst]?.requirePullRequest) protectedReject(`${srcName} -> ${dst}`, dst);
     const fastForward = old ? ancestors(repo, src).has(old) : true;
     if (old && !fastForward && !force) {
       rejected.push(` ! [rejected]        ${srcName} -> ${dst} (fetch first)`);
@@ -230,6 +253,7 @@ export function gitPush(ctx: Ctx, args: string[]) {
     host.branches[dst] = src;
     if (!host.branches[host.defaultBranch]) host.defaultBranch = dst;
     repo.remoteRefs[`${remoteName}/${dst}`] = src;
+    notes.push(...onBranchPushed(ctx.world, host, dst, old, src));
     ctx.emit({ type: "push", remote: remoteName, branch: dst, id: src });
     if (setUpstream && srcName !== "HEAD") {
       repo.upstream[srcName] = `${remoteName}/${dst}`;
@@ -240,11 +264,13 @@ export function gitPush(ctx: Ctx, args: string[]) {
   const deleteRef = (dst: string) => {
     if (host.tags?.[dst] && !host.branches[dst]) {
       delete host.tags[dst];
+      if (host.tagMeta) delete host.tagMeta[dst];
       lines.push({ text: ` - [deleted]         ${dst}`, kind: "success" });
       return;
     }
     if (!host.branches[dst])
       fail([`error: unable to delete '${dst}': remote ref does not exist`, `error: failed to push some refs to '${url}'`], `GitHub has no branch called "${dst}". Run git branch -r to see the remote branches you know about.`);
+    if (host.protection?.[dst]) protectedReject(dst, dst, true);
     if (dst === host.defaultBranch && Object.keys(host.branches).length > 1)
       fail(
         [` ! [remote rejected] ${dst} (refusing to delete the current branch: refs/heads/${dst})`, `error: failed to push some refs to '${url}'`],
@@ -269,6 +295,7 @@ export function gitPush(ctx: Ctx, args: string[]) {
   ctx.out(`To ${url}`, "muted");
   if (objects) ctx.out(`Writing objects: 100% (${objects}/${objects}), done.`, "muted");
   for (const l of lines) ctx.out(l.text, l.kind);
+  if (notes.length) ctx.out(notes, "muted");
   if (!lines.length && !rejected.length) ctx.out("Everything up-to-date");
   if (rejected.length) {
     ctx.error([...rejected, `error: failed to push some refs to '${url}'`]);
@@ -314,6 +341,8 @@ function fetchRemote(ctx: Ctx, repo: Repo, remoteName: string, prune = false): s
     if (repo.tags[t]) continue;
     transfer(ctx.world.hostedCommits, repo.commits, id);
     repo.tags[t] = id;
+    const meta = host.tagMeta?.[t];
+    if (meta) (repo.tagMeta ??= {})[t] = { ...meta };
     lines.push(` * [new tag]         ${t.padEnd(10)} -> ${t}`);
   }
   if (lines.length) {
@@ -372,7 +401,11 @@ export function gitPull(ctx: Ctx, args: string[]) {
   const ref = `${remoteName}/${remoteBranch ?? branch}`;
   if (!repo.remoteRefs[ref]) fail(`fatal: couldn't find remote ref ${remoteBranch ?? branch}`);
   if (rebase) gitRebase(ctx, [ref]);
-  else gitMerge(ctx, [ref]);
+  else {
+    // like real Git: "Merge branch 'main' of https://github.com/you/project"
+    const from = remoteUrl(repo, remoteName).replace(/\/+$/, "").replace(/\.git$/, "");
+    gitMerge(ctx, [ref], { pullFrom: `branch '${remoteBranch ?? branch}' of ${from}` });
+  }
 }
 
 export function gitClone(ctx: Ctx, args: string[]) {

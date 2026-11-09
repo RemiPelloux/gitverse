@@ -41,6 +41,10 @@ export interface OpState {
   conflicts: string[];
   message: string;
   author?: string;
+  /** cherry-pick / revert: commits still to apply after this one (sequencer). */
+  todo?: string[];
+  /** cherry-pick / revert: HEAD before the sequence started (for --abort). */
+  origHead?: string;
   rebase?: {
     branch: string | null;
     upstream: string;
@@ -50,11 +54,78 @@ export interface OpState {
   };
 }
 
+/** Extra data stored by an annotated tag (`git tag -a` / `git tag -m`). */
+export interface TagMeta {
+  message: string;
+  /** "Name <email>" */
+  tagger: string;
+  time: number;
+}
+
 export interface StashEntry {
   base: string;
   index: FileMap;
   workdir: FileMap;
   message: string;
+}
+
+/** A pull request on the simulated GitHub. Numbers are shared with issues, like on GitHub. */
+export interface PullRequest {
+  number: number;
+  title: string;
+  body: string;
+  author: string;
+  /** Branch with the changes. */
+  head: string;
+  /** Branch it should be merged into. */
+  base: string;
+  /** Commit the head branch pointed to when the PR was last updated. */
+  headCommit: string;
+  state: "open" | "merged" | "closed";
+  reviews: Array<{ author: string; state: "approved" | "changes_requested" | "commented"; body: string }>;
+  mergedWith?: "merge" | "squash" | "rebase";
+  mergeCommit?: string;
+}
+
+export interface Issue {
+  number: number;
+  title: string;
+  body: string;
+  author: string;
+  state: "open" | "closed";
+  labels: string[];
+  /** Commit or PR ("#12") that closed it. */
+  closedBy?: string;
+}
+
+export interface Release {
+  tag: string;
+  title: string;
+  notes: string;
+  author: string;
+}
+
+/** One GitHub Actions workflow run. */
+export interface WorkflowRun {
+  id: number;
+  workflow: string;
+  event: "push" | "pull_request";
+  branch: string;
+  commit: string;
+  status: "success" | "failure";
+  pr?: number;
+  /** Workflow file path (e.g. ".github/workflows/ci.yml"), used by `gh run rerun`. */
+  file?: string;
+  jobs: Array<{ name: string; ok: boolean; log: string[] }>;
+}
+
+/** Branch protection rule (GitHub "rulesets" / protected branches). */
+export interface Protection {
+  /** Direct pushes are rejected: changes must arrive through a pull request. */
+  requirePullRequest: boolean;
+  requiredApprovals: number;
+  /** Names of workflow jobs that must pass before merging. */
+  requiredChecks: string[];
 }
 
 /** A repository hosted on the simulated GitHub. */
@@ -66,6 +137,20 @@ export interface HostedRepo {
   defaultBranch: string;
   /** Tags published with `git push --tags` / `git push origin <tag>`. */
   tags?: Record<string, string>;
+  /** Annotated tag data, keyed by tag name (lightweight tags have no entry). */
+  tagMeta?: Record<string, TagMeta>;
+  pulls?: PullRequest[];
+  issues?: Issue[];
+  releases?: Release[];
+  runs?: WorkflowRun[];
+  /** Actions secrets: name -> value (never printed). */
+  secrets?: Record<string, string>;
+  /** Branch name -> protection rule. */
+  protection?: Record<string, Protection>;
+  /** Simulated teammates who review (and approve) new pull requests. */
+  autoReviewers?: string[];
+  /** Next number for a PR or issue. */
+  nextNumber?: number;
 }
 
 export interface Repo {
@@ -75,6 +160,10 @@ export interface Repo {
   /** Order in which branches were created (stable lane assignment). */
   branchOrder: string[];
   tags: Record<string, string>;
+  /** Annotated tag data, keyed by tag name (lightweight tags have no entry). */
+  tagMeta?: Record<string, TagMeta>;
+  /** Commit HEAD pointed to before the last reset / merge / rebase / pull (ORIG_HEAD). */
+  origHead?: string;
   head: Head;
   /** The staging area: the snapshot the next commit will record. */
   index: FileMap;
@@ -87,6 +176,23 @@ export interface Repo {
   remoteRefs: Record<string, string>;
   /** Local branch -> upstream ("origin/main"). */
   upstream: Record<string, string>;
+  /** `git config` values other than user.name / user.email (e.g. core.hooksPath). */
+  config?: Record<string, string>;
+  /** An in-progress `git bisect` session. */
+  bisect?: BisectState | null;
+}
+
+export interface BisectState {
+  /** Branch (or detached commit) to return to on `git bisect reset`. */
+  orig: string;
+  bad: string | null;
+  good: string[];
+  /** The first bad commit, once found. */
+  found?: string;
+  /** Commits marked with `git bisect skip`. */
+  skip?: string[];
+  /** Lines replayed by `git bisect log`. */
+  log?: string[];
 }
 
 export interface World {
@@ -152,4 +258,6 @@ export interface ExecResult {
   /** Plain-language explanation of an error, for beginners. */
   explain?: string;
   clear?: boolean;
+  /** Set when the line ran the shell builtin `exit N` (N is the exit code). */
+  exit?: number;
 }

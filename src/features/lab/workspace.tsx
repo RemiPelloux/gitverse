@@ -3,11 +3,12 @@
 import { clsx } from "clsx";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import { BookOpen, Cloud, Files, GitCommitHorizontal, GitFork, Layers, SquareTerminal } from "lucide-react";
+import { BookMarked, BookOpen, Cloud, Files, GitCommitHorizontal, GitFork, Layers, SquareTerminal } from "lucide-react";
 import { useT } from "@/i18n";
 import { Editor } from "./editor";
 import { FilesPanel, type Spotlight } from "./files-panel";
 import { GitGraph } from "./git-graph";
+import { hasGitHubData, hostedFor } from "./github-status";
 import { CommitInspector, RemotePanel } from "./inspector";
 import { StagesVisualizer } from "./stages";
 import { useLab } from "./store";
@@ -131,11 +132,15 @@ export function Workspace({
       <FilesPanel onOpen={(p) => (ui.editor ? setOpenFile(p) : setOpenFile(null))} editable={ui.editor} spotlight={spotlight} />
     );
 
+  // Once the hosted repo has pull requests, issues or workflow runs, the remote tab is a GitHub view.
+  const githubTab = hasGitHubData(hostedFor(world)?.host);
   const tabs: Array<{ id: SideTab; label: string; icon: ReactNode; show: boolean }> = [
     { id: "guide", label: t("lab.workspace.guide"), icon: <BookOpen className="size-3.5" />, show: !!guide && !isDesktop },
     { id: "files", label: t("lab.workspace.files"), icon: <Files className="size-3.5" />, show: ui.files },
     { id: "commit", label: t("lab.workspace.commit"), icon: <GitCommitHorizontal className="size-3.5" />, show: true },
-    { id: "remote", label: t("lab.workspace.remote"), icon: <Cloud className="size-3.5" />, show: ui.remote },
+    githubTab
+      ? { id: "remote", label: t("lab.workspace.github"), icon: <BookMarked className="size-3.5" />, show: ui.remote }
+      : { id: "remote", label: t("lab.workspace.remote"), icon: <Cloud className="size-3.5" />, show: ui.remote },
   ];
   const activeSide = tabs.find((tab) => tab.id === sideTab && tab.show) ? sideTab : (tabs.find((tab) => tab.show)?.id ?? "commit");
 

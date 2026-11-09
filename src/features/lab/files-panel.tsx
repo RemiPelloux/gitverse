@@ -9,17 +9,18 @@ import { useT, type T } from "@/i18n";
 import { useHydrated } from "@/components/ui/misc";
 import { useLab } from "./store";
 
-export type FileState = "untracked" | "modified" | "staged" | "staged-modified" | "conflict" | "deleted" | "clean" | "new-staged";
+export type FileState = "untracked" | "modified" | "staged" | "staged-modified" | "conflict" | "deleted" | "clean" | "new-staged" | "ignored";
 
 export function fileStates(world: World): Map<string, FileState> {
   const map = new Map<string, FileState>();
-  const entries = status(world);
+  const entries = status(world, { ignored: true });
   const byPath = new Map<string, StatusEntry>(entries.map((e) => [e.path, e]));
   const paths = new Set([...Object.keys(world.workdir), ...entries.map((e) => e.path)]);
   for (const p of paths) {
     const e = byPath.get(p);
     if (!world.repo) map.set(p, "untracked");
     else if (!e) map.set(p, "clean");
+    else if (e.ignored) map.set(p, "ignored");
     else if (e.conflicted) map.set(p, "conflict");
     else if (e.untracked) map.set(p, "untracked");
     else if (e.unstaged === "deleted" || (e.staged === "deleted" && !(p in world.workdir))) map.set(p, "deleted");
@@ -40,9 +41,10 @@ export const STATE_META: Record<FileState, { letter: string; key: StateKey; cls:
   conflict: { letter: "C", key: "conflict", cls: "text-bad bg-bad-soft ring-1 ring-bad/50" },
   deleted: { letter: "D", key: "deleted", cls: "text-bad bg-bad-soft" },
   clean: { letter: "", key: "clean", cls: "text-fg-3" },
+  ignored: { letter: "I", key: "ignored", cls: "text-fg-3 bg-surface-2" },
 };
 
-type StateKey = "untracked" | "modified" | "staged" | "newStaged" | "stagedModified" | "conflict" | "deleted" | "clean";
+type StateKey = "untracked" | "modified" | "staged" | "newStaged" | "stagedModified" | "conflict" | "deleted" | "clean" | "ignored";
 
 /** Translated label and help text for a file state. */
 export function stateText(t: T, state: FileState) {
@@ -298,7 +300,7 @@ function Legend() {
     <details className="border-t border-line px-3 py-2 text-[11px] text-fg-3">
       <summary className="cursor-pointer select-none hover:text-fg-2">{t("lab.files.legend")}</summary>
       <ul className="mt-2 space-y-1.5">
-        {(["untracked", "modified", "new-staged", "staged", "conflict", "deleted"] as FileState[]).map((s) => (
+        {(["untracked", "modified", "new-staged", "staged", "conflict", "deleted", "ignored"] as FileState[]).map((s) => (
           <li key={s} className="flex items-start gap-2">
             <StateBadge state={s} />
             <span>{stateText(t, s).help}</span>

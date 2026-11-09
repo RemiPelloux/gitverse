@@ -1,4 +1,9 @@
 import { LESSONS } from "./lessons";
+import { PR_LESSONS } from "./chapters/pull-requests";
+import { TEAM_LESSONS } from "./chapters/collaboration";
+import { ADV_A_LESSONS } from "./chapters/advanced-a";
+import { ADV_B_LESSONS } from "./chapters/advanced-b";
+import { WORKFLOW_LESSONS } from "./chapters/workflows";
 import type { Chapter, Lesson, Tier } from "./types";
 
 const L = LESSONS;
@@ -73,8 +78,8 @@ export const CHAPTERS: Chapter[] = [
     title: "Pull Requests",
     tier: "advanced",
     description: "Propose, review and merge changes on GitHub.",
-    lessons: [],
-    upcoming: ["Creating pull requests", "Code review", "Merge strategies", "Branch protection"],
+    lessons: PR_LESSONS,
+    upcoming: [],
   },
   {
     id: "collaboration",
@@ -82,8 +87,8 @@ export const CHAPTERS: Chapter[] = [
     title: "Team Collaboration",
     tier: "advanced",
     description: "Feature branches, GitHub Flow and trunk-based development.",
-    lessons: [],
-    upcoming: ["GitHub Flow", "Trunk-based development", "Release management"],
+    lessons: TEAM_LESSONS,
+    upcoming: [],
   },
   {
     id: "advanced",
@@ -91,8 +96,8 @@ export const CHAPTERS: Chapter[] = [
     title: "Advanced Git",
     tier: "expert",
     description: "Cherry-pick, stash, tags, bisect and more.",
-    lessons: [],
-    upcoming: ["Cherry-pick", "Stash", "Tags", "Bisect", ".gitignore", "Hooks"],
+    lessons: [...ADV_A_LESSONS, ...ADV_B_LESSONS],
+    upcoming: [],
   },
   {
     id: "workflows",
@@ -100,8 +105,8 @@ export const CHAPTERS: Chapter[] = [
     title: "GitHub Developer Workflows",
     tier: "expert",
     description: "Issues, Actions, CI/CD and repository security.",
-    lessons: [],
-    upcoming: ["GitHub Actions", "CI/CD", "Secrets", "Permissions"],
+    lessons: WORKFLOW_LESSONS,
+    upcoming: [],
   },
   {
     id: "scenarios",

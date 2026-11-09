@@ -15,8 +15,12 @@ import {
   resolveRev,
   sameTree,
   status,
+  validBranchName,
 } from "../repo";
 import type { Commit, FileMap, Repo } from "../types";
+import type { StatusEntry } from "../repo";
+import { COMMIT_MSG_FILE, hookExplain, runHook, runHookDetailed } from "../hooks";
+import { ignoreRules, isIgnoredPath, matchIgnore } from "../ignore";
 import {
   branchLabel,
   describeCommit,
@@ -78,7 +82,15 @@ function upstreamInfo(repo: Repo): string[] {
 
 export function gitStatus(ctx: Ctx, args: string[]) {
   const repo = requireRepo(ctx);
-  const entries = status(ctx.world);
+  const showIgnored = args.includes("--ignored");
+  const all = status(ctx.world, { ignored: showIgnored });
+  const uMode = untrackedMode(args);
+  const entries = collapseUntracked(
+    repo,
+    all.filter((e) => !e.ignored && !(uMode === "no" && e.untracked && !e.staged && !e.conflicted)),
+    uMode === "all",
+  );
+  const ignored = ignoredDisplay(ctx, all.filter((e) => e.ignored).map((e) => e.path));
   if (args.includes("-s") || args.includes("--short")) {
     for (const e of entries) {
       if (e.conflicted) ctx.out(`UU ${e.path}`, "error");
@@ -89,16 +101,32 @@ export function gitStatus(ctx: Ctx, args: string[]) {
         ctx.out(`${x}${y} ${e.path}`, e.staged ? "success" : "error");
       }
     }
+    for (const p of ignored) ctx.out(`!! ${p}`, "muted");
     return;
   }
   const head = headCommit(repo);
   if (repo.head.kind === "branch") ctx.out(`On branch ${repo.head.name}`);
   else ctx.out(`HEAD detached at ${shortId(repo.head.commit)}`, "warning");
   ctx.out(upstreamInfo(repo));
+  if (repo.bisect) {
+    const orig = repo.bisect.orig;
+    ctx.out(repo.branches[orig] !== undefined ? `You are currently bisecting, started from branch '${orig}'.` : "You are currently bisecting.");
+    ctx.out(`  (use "git bisect reset" to get back to the original branch)`, "muted");
+    ctx.out("");
+  }
   if (repo.op?.kind === "rebase") {
     ctx.out([`interactive rebase in progress; onto ${shortId(repo.op.rebase!.upstream)}`]);
     ctx.out(`  (fix conflicts and then run "git rebase --continue")`, "muted");
     ctx.out(`  (use "git rebase --abort" to check out the original branch)`, "muted");
+    ctx.out("");
+  } else if (repo.op && repo.op.kind !== "merge") {
+    const k = repo.op.kind;
+    const ing = k === "revert" ? "reverting" : "cherry-picking";
+    ctx.out(`You are currently ${ing} commit ${shortId(repo.op.theirs)}.`);
+    if (repo.op.conflicts.length) ctx.out(`  (fix conflicts and run "git ${k} --continue")`, "muted");
+    else ctx.out(`  (all conflicts fixed: run "git ${k} --continue")`, "muted");
+    ctx.out(`  (use "git ${k} --skip" to skip this patch)`, "muted");
+    ctx.out(`  (use "git ${k} --abort" to cancel the ${k} operation)`, "muted");
     ctx.out("");
   } else if (repo.op) {
     if (repo.op.conflicts.length) {
@@ -147,6 +175,12 @@ export function gitStatus(ctx: Ctx, args: string[]) {
     for (const e of untracked) ctx.out(`\t${e.path}`, "error");
     ctx.out("");
   }
+  if (ignored.length) {
+    ctx.out("Ignored files:");
+    ctx.out(`  (use "git add -f <file>..." to include in what will be committed)`, "muted");
+    for (const p of ignored) ctx.out(`\t${p}`, "muted");
+    ctx.out("");
+  }
   if (!staged.length && !conflicted.length) {
     if (unstaged.length) ctx.out(`no changes added to commit (use "git add" and/or "git commit -a")`);
     else if (untracked.length)
@@ -156,11 +190,76 @@ export function gitStatus(ctx: Ctx, args: string[]) {
   }
 }
 
+/** `-u[<mode>]` / `--untracked-files[=<mode>]`: "normal" (default), "all" or "no". A bare -u means all. */
+function untrackedMode(args: string[]): "normal" | "all" | "no" {
+  let mode: "normal" | "all" | "no" = "normal";
+  for (const a of args) {
+    const m = /^(?:-u|--untracked-files)(?:=?(\w+))?$/.exec(a);
+    if (!m) continue;
+    const v = m[1] ?? "all";
+    if (v === "all" || v === "no" || v === "normal") mode = v;
+    else fail(`fatal: Invalid untracked files mode '${v}'`, "Use -uall (list every file), -unormal (the default: folders shown once) or -uno (hide untracked files).");
+  }
+  return mode;
+}
+
+/**
+ * Printed `git status` only (the Files panel uses status() per file): like real Git, a directory
+ * holding no tracked file at all is shown once as `dir/` instead of listing every file inside it.
+ */
+function collapseUntracked(repo: Repo, entries: StatusEntry[], showAll: boolean): StatusEntry[] {
+  if (showAll) return entries;
+  const tracked = [...new Set([...Object.keys(repo.index), ...Object.keys(headTree(repo))])];
+  const hasTracked = (dir: string) => tracked.some((p) => p.startsWith(dir));
+  const out: StatusEntry[] = [];
+  const seen = new Set<string>();
+  for (const e of entries) {
+    if (!e.untracked || e.staged || e.conflicted) {
+      out.push(e);
+      continue;
+    }
+    const parts = e.path.split("/");
+    let path = e.path;
+    for (let i = 1; i < parts.length; i++) {
+      const dir = parts.slice(0, i).join("/") + "/";
+      if (!hasTracked(dir)) {
+        path = dir;
+        break;
+      }
+    }
+    if (seen.has(path)) continue;
+    seen.add(path);
+    out.push(path === e.path ? e : { ...e, path });
+  }
+  return out;
+}
+
+/** Ignored paths as `git status --ignored` lists them: a fully ignored directory is shown once as `dir/`. */
+function ignoredDisplay(ctx: Ctx, paths: string[]): string[] {
+  if (!paths.length) return [];
+  const rules = ignoreRules(ctx.world.workdir);
+  const out = new Set<string>();
+  for (const p of paths) {
+    const m = matchIgnore(rules, p);
+    out.add(m && m.isDir ? m.path + "/" : p);
+  }
+  return [...out].sort();
+}
+
 export function gitAdd(ctx: Ctx, args: string[]) {
   const repo = requireRepo(ctx);
   const world = ctx.world;
   const all = args.includes("-A") || args.includes("--all");
+  const force = args.includes("-f") || args.includes("--force");
   const specs = args.filter((a) => !a.startsWith("-"));
+  const rules = force ? [] : ignoreRules(world.workdir);
+  /** Untracked + ignored: `git add` leaves these alone unless forced. */
+  const isIgnored = (p: string) => rules.length > 0 && !(p in repo.index) && p in world.workdir && isIgnoredPath(rules, p);
+  const refused: string[] = [];
+  const isIgnoredDir = (dir: string) => {
+    const m = matchIgnore(rules, dir, true);
+    return !!m && !m.rule.negate;
+  };
   if (!specs.length && !all)
     fail(
       ["Nothing specified, nothing added.", "hint: Maybe you wanted to say 'git add .'?"],
@@ -175,7 +274,14 @@ export function gitAdd(ctx: Ctx, args: string[]) {
         `fatal: pathspec '${spec}' did not match any files`,
         `There's no file called "${spec}" in your project. Check the spelling, or look at the Files panel / run ls to see what exists.`,
       );
-    matched.forEach((p) => targets.add(p));
+    // "." / a directory silently skips ignored files; naming an ignored file (or glob) explicitly is refused
+    const clean = spec.replace(/^\.\//, "").replace(/\/$/, "");
+    const broad = all || spec === "." || spec === ":/" || (!clean.includes("*") && !(clean in world.workdir) && !(clean in repo.index));
+    for (const p of matched) {
+      if (!isIgnored(p)) targets.add(p);
+      else if (!broad) refused.push(p);
+      else if (p === clean || isIgnoredDir(clean)) refused.push(clean);
+    }
   }
   const staged: string[] = [];
   for (const p of targets) {
@@ -192,6 +298,16 @@ export function gitAdd(ctx: Ctx, args: string[]) {
     }
   }
   if (staged.length) ctx.emit({ type: "stage", paths: staged });
+  if (refused.length)
+    ctx.error(
+      [
+        "The following paths are ignored by one of your .gitignore files:",
+        ...[...new Set(refused)].sort(),
+        "hint: Use -f if you really want to add them.",
+        'hint: Disable this message with "git config set advice.addIgnoredFile false"',
+      ],
+      "Your .gitignore says Git should not track these files (things like secrets, logs or build output usually shouldn't be committed). Git refused to stage them. If you really want this file in the repository, use git add -f <file>.",
+    );
 }
 
 export function gitRm(ctx: Ctx, args: string[]) {
@@ -261,6 +377,7 @@ export function gitCommit(ctx: Ctx, args: string[]) {
   let amend = false;
   let allowEmpty = false;
   let noEdit = false;
+  let noVerify = false;
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === "-m" || a === "--message") {
@@ -275,6 +392,7 @@ export function gitCommit(ctx: Ctx, args: string[]) {
     } else if (a === "--amend") amend = true;
     else if (a === "--allow-empty") allowEmpty = true;
     else if (a === "--no-edit") noEdit = true;
+    else if (a === "--no-verify" || a === "-n") noVerify = true;
     else if (a.startsWith("-")) fail(`error: unknown option \`${a.replace(/^-+/, "")}'`);
     else fail(`error: pathspec '${a}' did not match any file(s) known to git`, 'Did you forget quotes around your message? Use: git commit -m "your message"');
   }
@@ -299,6 +417,8 @@ export function gitCommit(ctx: Ctx, args: string[]) {
       else delete repo.index[p];
     }
   }
+  if (!noVerify && !runHook(ctx, "pre-commit"))
+    fail([], hookExplain("pre-commit", "creating the commit (nothing was committed)"));
   let message = messages.join("\n\n");
   if (!message && repo.op) message = repo.op.message;
   if (!message && amend && noEdit) message = headCommit(repo)?.message ?? "";
@@ -339,10 +459,17 @@ export function gitCommit(ctx: Ctx, args: string[]) {
     }
     return;
   }
+  if (!noVerify) {
+    const hook = runHookDetailed(ctx, "commit-msg", { [COMMIT_MSG_FILE]: message + "\n" }, [COMMIT_MSG_FILE]);
+    if (hook && !hook.ok) fail([], hookExplain("commit-msg", "creating the commit, because of the commit message (nothing was committed)"));
+    // like real Git, the hook may rewrite the message file
+    const edited = hook?.world.workdir[COMMIT_MSG_FILE]?.replace(/\n+$/, "");
+    if (edited) message = edited;
+  }
   finishCommit(ctx, repo, message, { amend, allowEmpty });
 }
 
-function formatDate(t: number) {
+export function formatDate(t: number) {
   return new Date(t * 1000).toUTCString().replace("GMT", "+0000");
 }
 
@@ -479,6 +606,15 @@ export function gitShow(ctx: Ctx, args: string[]) {
         : `fatal: ambiguous argument '${target}': unknown revision or path not in the working tree.`,
     );
   const c = repo.commits[id];
+  const tag = repo.tags[target] === id ? repo.tagMeta?.[target] : undefined;
+  if (tag) {
+    ctx.out(`tag ${target}`, "commit");
+    ctx.out(`Tagger: ${tag.tagger}`);
+    ctx.out(`Date:   ${formatDate(tag.time)}`, "muted");
+    ctx.out("");
+    ctx.out(tag.message.split("\n"));
+    ctx.out("");
+  }
   ctx.out(`commit ${c.id}${decorations(repo, c.id)}`, "commit");
   if (c.parents.length > 1) ctx.out(`Merge: ${c.parents.map(shortId).join(" ")}`);
   ctx.out(`Author: ${c.author}`);
@@ -557,32 +693,109 @@ export function gitReflog(ctx: Ctx, args: string[]) {
   });
 }
 
-export function gitTag(ctx: Ctx, args: string[]) {
+/** fnmatch-style glob used by `git tag -l` / `git branch --list` (`*` also matches `/`). */
+export function refGlob(pattern: string): RegExp {
+  let re = "";
+  for (const ch of pattern) {
+    if (ch === "*") re += ".*";
+    else if (ch === "?") re += ".";
+    else re += ch.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+  }
+  return new RegExp(`^${re}$`);
+}
+
+export function gitTag(ctx: Ctx, rawArgs: string[]) {
   const repo = requireRepo(ctx);
-  const del = args.includes("-d") || args.includes("--delete");
+  // split bundled short flags: -am "msg" -> -a -m "msg"
+  const args = rawArgs.flatMap((a) => (/^-[adfl]+m?$/.test(a) && a.length > 2 ? [...a.slice(1)].map((f) => `-${f}`) : [a]));
+  let del = false;
+  let list = false;
+  let annotate = false;
+  let force = false;
+  let lines: number | null = null;
+  let contains: string | null = null;
+  const messages: string[] = [];
   const positional: string[] = [];
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === "-m") {
-      i++;
-      continue;
-    }
-    if (!args[i].startsWith("-")) positional.push(args[i]);
+    const a = args[i];
+    if (a === "-d" || a === "--delete") del = true;
+    else if (a === "-l" || a === "--list") list = true;
+    else if (a === "-a" || a === "--annotate") annotate = true;
+    else if (a === "-f" || a === "--force") force = true;
+    else if (a === "-m" || a === "--message") {
+      if (i + 1 >= args.length) fail("error: switch `m' requires a value", 'Put the tag message right after -m, in quotes: git tag -a v1.0 -m "Release 1.0"');
+      messages.push(args[++i]);
+    } else if (a.startsWith("--message=")) messages.push(a.slice("--message=".length));
+    else if (/^-m./.test(a)) messages.push(a.slice(2));
+    else if (/^-n\d*$/.test(a)) lines = a.length > 2 ? Number(a.slice(2)) : 1;
+    else if (a === "--contains") {
+      // optional argument: defaults to HEAD
+      const next = args[i + 1];
+      if (next !== undefined && !next.startsWith("-") && resolveRev(repo, next)) contains = args[++i];
+      else contains = "HEAD";
+    } else if (a.startsWith("--contains=")) contains = a.slice("--contains=".length);
+    else if (a.startsWith("-"))
+      fail(`error: unknown option \`${a.replace(/^-+/, "")}'`, "Common git tag options: -a (annotated) with -m \"message\", -l to list, -d to delete, -n to show messages.");
+    else positional.push(a);
   }
-  if (!positional.length) {
-    Object.keys(repo.tags).sort().forEach((t) => ctx.out(t));
+  const meta = (repo.tagMeta ??= {});
+  const listing = list || lines !== null || contains !== null || (!positional.length && !del && !messages.length && !annotate);
+  if (listing && !del) {
+    if (messages.length || annotate)
+      fail("fatal: options '-l' and '-a' cannot be used together", "-l only lists tags. To create an annotated tag, drop -l: git tag -a v1.0 -m \"Release 1.0\"");
+    const patterns = positional.map(refGlob);
+    let names = Object.keys(repo.tags).sort();
+    if (patterns.length) names = names.filter((t) => patterns.some((re) => re.test(t)));
+    if (contains !== null) {
+      const id = resolveRev(repo, contains);
+      if (!id) fail(`error: malformed object name ${contains}`, `There's no commit called "${contains}". Use a branch name, tag or commit id from git log --oneline.`);
+      names = names.filter((t) => ancestors(repo, repo.tags[t]).has(id));
+    }
+    for (const t of names) {
+      if (lines === null) {
+        ctx.out(t);
+        continue;
+      }
+      const text = meta[t]?.message ?? repo.commits[repo.tags[t]]?.message ?? "";
+      const msgLines = text.split("\n").slice(0, Math.max(1, lines));
+      ctx.out(`${t.padEnd(15)} ${msgLines[0]}`);
+      for (const l of msgLines.slice(1)) ctx.out(`    ${l}`);
+    }
+    return;
+  }
+  if (del) {
+    if (!positional.length) fail("usage: git tag -d <tagname>...", "Name the tag to delete, e.g. git tag -d v1.0. Run git tag to list them.");
+    for (const name of positional) {
+      if (!repo.tags[name]) {
+        ctx.error(`error: tag '${name}' not found.`, "There's no tag with that name. Run git tag to see the existing tags.");
+        continue;
+      }
+      ctx.out(`Deleted tag '${name}' (was ${shortId(repo.tags[name])})`);
+      delete repo.tags[name];
+      delete meta[name];
+    }
     return;
   }
   const [name, rev] = positional;
-  if (del) {
-    if (!repo.tags[name]) fail(`error: tag '${name}' not found.`);
-    ctx.out(`Deleted tag '${name}' (was ${shortId(repo.tags[name])})`);
-    delete repo.tags[name];
-    return;
-  }
-  if (repo.tags[name]) fail(`fatal: tag '${name}' already exists`);
+  if (!name) fail("usage: git tag [-a] [-m <msg>] <tagname> [<commit>]", 'Give the tag a name, e.g. git tag -a v1.0 -m "Release 1.0".');
+  if (!validBranchName(name)) fail(`fatal: '${name}' is not a valid tag name.`, "Tag names look like v1.0.0: letters, numbers, dots, dashes and slashes, no spaces.");
+  if (repo.tags[name] && !force)
+    fail(`fatal: tag '${name}' already exists`, `A tag called ${name} already exists, and tags aren't supposed to move. Pick a new name, or delete it first with git tag -d ${name}.`);
+  const message = messages.join("\n\n");
+  if (annotate && !messages.length)
+    fail(
+      "fatal: no tag message given (there is no editor here: use -m)",
+      `An annotated tag needs a message. Real Git would open a text editor; here, give it with -m: git tag -a ${name} -m "Release ${name.replace(/^v/, "")}"`,
+    );
   const id = resolveRev(repo, rev ?? "HEAD");
   if (!id) fail(`fatal: Failed to resolve '${rev ?? "HEAD"}' as a valid ref.`, "You need at least one commit before you can tag it.");
+  const old = repo.tags[name];
   repo.tags[name] = id;
+  if (messages.length) {
+    ctx.world.clock += 30;
+    meta[name] = { message, tagger: `${ctx.world.user.name} <${ctx.world.user.email}>`, time: ctx.world.clock };
+  } else delete meta[name];
+  if (old && old !== id) ctx.out(`Updated tag '${name}' (was ${shortId(old)})`);
   ctx.emit({ type: "tag", name, at: id });
 }
 
