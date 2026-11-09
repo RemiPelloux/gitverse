@@ -45,6 +45,7 @@ export const labFr: Widen<typeof labEn> = {
       conflict: { label: "conflit", help: "Les deux branches ont modifié ce fichier. Résous-le, puis git add." },
       deleted: { label: "supprimé", help: "Retiré de ton dossier." },
       clean: { label: "enregistré", help: "Identique au dernier commit." },
+      ignored: { label: "ignoré", help: "Correspond à .gitignore : Git fait comme si ce fichier n'existait pas." },
     },
     title: "Fichiers du projet",
     counts: "{changed} modifié(s) · {staged} stagé(s)",

@@ -43,6 +43,7 @@ export const labEn = {
       conflict: { label: "conflict", help: "Both branches changed this file. Resolve it, then git add." },
       deleted: { label: "deleted", help: "Removed from your folder." },
       clean: { label: "saved", help: "Identical to the last commit." },
+      ignored: { label: "ignored", help: "Matched by .gitignore: Git pretends this file doesn't exist." },
     },
     title: "Project files",
     counts: "{changed} changed · {staged} staged",
