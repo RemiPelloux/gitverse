@@ -3,6 +3,7 @@ import { PR_FR } from "./chapters/pull-requests";
 import { TEAM_FR } from "./chapters/collaboration";
 import { ADV_A_FR } from "./chapters/advanced-a";
 import { ADV_B_FR } from "./chapters/advanced-b";
+import { WORKFLOW_FR } from "./chapters/workflows";
 
 /** French text for the curriculum. Same order as lessons.ts / index.ts. */
 export const CURRICULUM_FR: CurriculumText = {
@@ -61,7 +62,7 @@ export const CURRICULUM_FR: CurriculumText = {
     workflows: {
       title: "Les workflows des développeurs sur GitHub",
       description: "Issues, Actions, CI/CD et sécurité du dépôt.",
-      upcoming: ["GitHub Actions", "CI/CD", "Les secrets", "Les permissions"],
+      upcoming: [],
     },
     scenarios: {
       title: "Missions de sauvetage réelles",
@@ -847,5 +848,6 @@ export const CURRICULUM_FR: CurriculumText = {
     ...TEAM_FR,
     ...ADV_A_FR,
     ...ADV_B_FR,
+    ...WORKFLOW_FR,
   },
 };

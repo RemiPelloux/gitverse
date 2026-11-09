@@ -3,6 +3,7 @@ import { PR_LESSONS } from "./chapters/pull-requests";
 import { TEAM_LESSONS } from "./chapters/collaboration";
 import { ADV_A_LESSONS } from "./chapters/advanced-a";
 import { ADV_B_LESSONS } from "./chapters/advanced-b";
+import { WORKFLOW_LESSONS } from "./chapters/workflows";
 import type { Chapter, Lesson, Tier } from "./types";
 
 const L = LESSONS;
@@ -104,8 +105,8 @@ export const CHAPTERS: Chapter[] = [
     title: "GitHub Developer Workflows",
     tier: "expert",
     description: "Issues, Actions, CI/CD and repository security.",
-    lessons: [],
-    upcoming: ["GitHub Actions", "CI/CD", "Secrets", "Permissions"],
+    lessons: WORKFLOW_LESSONS,
+    upcoming: [],
   },
   {
     id: "scenarios",
