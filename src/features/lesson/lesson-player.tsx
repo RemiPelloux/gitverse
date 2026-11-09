@@ -3,7 +3,7 @@
 import { clsx } from "clsx";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "zustand";
 import {
   ArrowLeft,
@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Circle,
+  ClipboardList,
   Eye,
   FlaskConical,
   Lightbulb,
@@ -33,9 +34,12 @@ import { createLabStore, LabProvider, useLab } from "@/features/lab/store";
 import { Workspace } from "@/features/lab/workspace";
 import { withLearner } from "@/features/progress/learner";
 import { useProgress } from "@/features/progress/store";
-import { useT, type MessageKey } from "@/i18n";
+import { translate, useT, type MessageKey } from "@/i18n";
 import { Button } from "@/components/ui/button";
 import { ProgressBar, useHydrated } from "@/components/ui/misc";
+import { localizedDocs } from "@/features/docs/commands";
+import type { Locale } from "@/i18n/locale";
+import { CheatsheetDrawer } from "@/features/docs/cheatsheet";
 import { Celebration } from "./celebration";
 import { Scene } from "./scenes";
 
@@ -86,6 +90,8 @@ function LessonRuntime({ lesson }: { lesson: Lesson }) {
   const [step, setStep] = useState(() => Math.min(save?.step ?? 0, lesson.steps.length - 1));
   const [ran, setRan] = useState<string[]>([]);
   const [openedAt] = useState(() => Date.now());
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const closeSheet = useCallback(() => setSheetOpen(false), []);
   const recordCommand = useProgress((s) => s.recordCommand);
   const saveLesson = useProgress((s) => s.saveLesson);
   const clearLesson = useProgress((s) => s.clearLesson);
@@ -106,6 +112,22 @@ function LessonRuntime({ lesson }: { lesson: Lesson }) {
   );
   const world = useStore(store, (s) => s.world);
   const entries = useStore(store, (s) => s.entries);
+  // Several failed commands in a row: the terminal roasts (gently) and gives a hint
+  // that gets more direct each time (idea → command → walkthrough).
+  const seen = useRef(entries.length);
+  useEffect(() => {
+    const grew = entries.length > seen.current;
+    seen.current = entries.length;
+    const last = entries[entries.length - 1];
+    if (!grew || !last || last.ok || last.coach) return;
+    let fails = 0;
+    for (let i = entries.length - 1; i >= 0 && !entries[i].ok; i--) fails++;
+    if (fails % FAILS_BEFORE_COACH) return;
+    const hint = coachHint(lesson.steps[step], world, start, ran, fails / FAILS_BEFORE_COACH - 1, t.locale);
+    const roasts = t.list("lesson.roasts");
+    if (hint) store.getState().coachLast({ roast: roasts[Math.floor(Math.random() * roasts.length)], hint });
+    if (hint && lesson.steps[step].kind === "challenge" && fails >= 3 * FAILS_BEFORE_COACH) setStats((st) => (st.walkthrough ? st : { ...st, walkthrough: true }));
+  }, [entries, lesson, step, world, start, ran, t, store]);
 
   // Autosave so learners can leave and come back.
   useEffect(() => {
@@ -132,6 +154,16 @@ function LessonRuntime({ lesson }: { lesson: Lesson }) {
     clearLesson(lesson.id);
     setStats({ mistakes: 0, walkthrough: false });
     goto(0);
+  };
+
+  // The lamp: each click prints a more direct hint in the terminal.
+  const [lamp, setLamp] = useState({ step, level: 0 });
+  const askHint = () => {
+    const level = lamp.step === step ? lamp.level : 0;
+    const hint = coachHint(current, world, start, ran, level, t.locale);
+    if (hint) store.getState().pushHint("hint", hint);
+    if (current.kind === "challenge" && level >= 2) setStats((st) => ({ ...st, walkthrough: true }));
+    setLamp({ step, level: level + 1 });
   };
 
   const chapter = localizedChapters(t.locale).find((c) => c.id === lesson.chapterId) ?? getChapter(lesson.chapterId)!;
@@ -178,6 +210,14 @@ function LessonRuntime({ lesson }: { lesson: Lesson }) {
         <span className="hidden items-center gap-1 rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold text-warn sm:flex">
           <GitCommitHorizontal className="size-3.5" /> {lesson.xp} XP
         </span>
+        {usesWorkspace && (
+          <Button variant="ghost" size="sm" onClick={askHint} title={t("lesson.lampHint")} aria-label={t("lesson.lampHint")}>
+            <Lightbulb className="size-4 text-warn" />
+          </Button>
+        )}
+        <Button variant="ghost" size="sm" onClick={() => setSheetOpen(true)} title={t("lesson.cheatsheet")} aria-haspopup="dialog">
+          <ClipboardList className="size-3.5" /> <span className="hidden sm:inline">{t("lesson.cheatsheet")}</span>
+        </Button>
         <Button variant="ghost" size="sm" onClick={restart} title={t("lesson.restartTitle")}>
           <RotateCcw className="size-3.5" /> <span className="hidden sm:inline">{t("lesson.restart")}</span>
         </Button>
@@ -242,6 +282,7 @@ function LessonRuntime({ lesson }: { lesson: Lesson }) {
           </AnimatePresence>
         </div>
       </div>
+      <CheatsheetDrawer open={sheetOpen} onClose={closeSheet} commands={lesson.commands} />
     </LabProvider>
   );
 }
@@ -371,10 +412,12 @@ function GuidePanel({
   const mode = useProgress((s) => s.settings.terminalMode);
   const current = lesson.steps[step];
   const [showCmd, setShowCmd] = useState(false);
+  const [hintLevel, setHintLevel] = useState(0);
   const [prevStep, setPrevStep] = useState(step);
   if (prevStep !== step) {
     setPrevStep(step);
     setShowCmd(false);
+    setHintLevel(0);
   }
 
   return (
@@ -386,6 +429,8 @@ function GuidePanel({
           done={current.check(world, start, ran)}
           showCmd={showCmd || mode === "assisted"}
           onReveal={() => setShowCmd(true)}
+          hintLevel={hintLevel}
+          onHint={() => setHintLevel(1)}
           onRun={() => current.command && run(current.command)}
           onAction={() => {
             if (!current.action) return;
@@ -434,17 +479,23 @@ function TryView({
   onAction,
   onNext,
   name,
+  hintLevel,
+  onHint,
 }: {
   name: string;
   step: TryStep;
   done: boolean;
   showCmd: boolean;
   onReveal: () => void;
+  hintLevel: number;
+  onHint: () => void;
   onRun: () => void;
   onAction: () => void;
   onNext: () => void;
 }) {
   const t = useT();
+  const hintNames = t.list("lesson.hintNames");
+  const idea = tryHint(step, t);
   return (
     <>
       <h2 className="mt-2 text-xl font-semibold tracking-tight">{step.title}</h2>
@@ -465,7 +516,22 @@ function TryView({
               <Eye className="size-4" /> {t("lesson.showCommand")}
             </button>
           )}
-          {step.hint && <p className="mt-2 text-xs text-fg-3">{step.hint}</p>}
+        </div>
+      )}
+      {!done && idea && (
+        <div className="mt-4">
+          {hintLevel > 0 && (
+            <motion.p initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="rounded-md border border-warn/25 bg-warn-soft p-3 text-sm text-fg">
+              <span className="mb-0.5 block text-[11px] font-semibold text-warn">{hintNames[0]}</span>
+              {idea}
+            </motion.p>
+          )}
+          {hintLevel === 0 && (
+            <button onClick={onHint} className="flex items-center gap-1.5 text-sm text-fg-2 hover:text-fg">
+              <Lightbulb className="size-4 text-warn" />
+              {t("lesson.needHint")}
+            </button>
+          )}
         </div>
       )}
       {step.action && !done && (
@@ -608,6 +674,33 @@ function ChallengeView({
       </div>
     </>
   );
+}
+
+/** The "idea" hint for a Try step: its own hint, else what its command does. */
+function tryHint(step: TryStep, t: { locale: Locale } & ((key: MessageKey, vars?: Record<string, string | number>) => string)): string | null {
+  if (step.hint) return step.hint;
+  const name = step.command?.match(/^git\s+([a-z-]+)/)?.[1];
+  const doc = name ? localizedDocs(t.locale).find((d) => d.name === name) : undefined;
+  if (doc) return t("lesson.hintCommand", { cmd: `git ${doc.name}`, what: doc.plain });
+  if (step.action) return t("lesson.hintAction", { label: step.action.label });
+  return null;
+}
+
+const FAILS_BEFORE_COACH = 3;
+
+/** Terminal hint after repeated failures; `level` grows each time (idea → command → walkthrough). */
+function coachHint(step: Step, world: World, start: World, ran: string[], level: number, locale: Locale): string | null {
+  const t = Object.assign((key: MessageKey, vars?: Record<string, string | number>) => translate(locale, key, vars), { locale });
+  if (step.kind === "try") {
+    if (level > 0 && step.command) return t("lesson.coachTry", { cmd: step.command });
+    return tryHint(step, t) ?? (step.command ? t("lesson.coachTry", { cmd: step.command }) : null);
+  }
+  if (step.kind === "challenge") {
+    const open = step.objectives.find((o) => !o.check(world, start, ran));
+    return open ? `${open.label}: ${open.hints[Math.min(level, 2)]}` : null;
+  }
+  if (step.kind === "experiment" && step.ideas.length) return t("lesson.coachExperiment", { cmd: step.ideas[0] });
+  return t("lesson.coachGeneric");
 }
 
 /** On phones the current objective stays visible above every tab. */
