@@ -17,6 +17,8 @@ import {
   status,
 } from "../repo";
 import type { Commit, FileMap, Repo } from "../types";
+import { COMMIT_MSG_FILE, hookExplain, runHook, runHookDetailed } from "../hooks";
+import { ignoreRules, isIgnoredPath, matchIgnore } from "../ignore";
 import {
   branchLabel,
   describeCommit,
@@ -78,7 +80,10 @@ function upstreamInfo(repo: Repo): string[] {
 
 export function gitStatus(ctx: Ctx, args: string[]) {
   const repo = requireRepo(ctx);
-  const entries = status(ctx.world);
+  const showIgnored = args.includes("--ignored");
+  const all = status(ctx.world, { ignored: showIgnored });
+  const entries = all.filter((e) => !e.ignored);
+  const ignored = ignoredDisplay(ctx, all.filter((e) => e.ignored).map((e) => e.path));
   if (args.includes("-s") || args.includes("--short")) {
     for (const e of entries) {
       if (e.conflicted) ctx.out(`UU ${e.path}`, "error");
@@ -89,12 +94,19 @@ export function gitStatus(ctx: Ctx, args: string[]) {
         ctx.out(`${x}${y} ${e.path}`, e.staged ? "success" : "error");
       }
     }
+    for (const p of ignored) ctx.out(`!! ${p}`, "muted");
     return;
   }
   const head = headCommit(repo);
   if (repo.head.kind === "branch") ctx.out(`On branch ${repo.head.name}`);
   else ctx.out(`HEAD detached at ${shortId(repo.head.commit)}`, "warning");
   ctx.out(upstreamInfo(repo));
+  if (repo.bisect) {
+    const orig = repo.bisect.orig;
+    ctx.out(repo.branches[orig] !== undefined ? `You are currently bisecting, started from branch '${orig}'.` : "You are currently bisecting.");
+    ctx.out(`  (use "git bisect reset" to get back to the original branch)`, "muted");
+    ctx.out("");
+  }
   if (repo.op?.kind === "rebase") {
     ctx.out([`interactive rebase in progress; onto ${shortId(repo.op.rebase!.upstream)}`]);
     ctx.out(`  (fix conflicts and then run "git rebase --continue")`, "muted");
@@ -147,6 +159,12 @@ export function gitStatus(ctx: Ctx, args: string[]) {
     for (const e of untracked) ctx.out(`\t${e.path}`, "error");
     ctx.out("");
   }
+  if (ignored.length) {
+    ctx.out("Ignored files:");
+    ctx.out(`  (use "git add -f <file>..." to include in what will be committed)`, "muted");
+    for (const p of ignored) ctx.out(`\t${p}`, "muted");
+    ctx.out("");
+  }
   if (!staged.length && !conflicted.length) {
     if (unstaged.length) ctx.out(`no changes added to commit (use "git add" and/or "git commit -a")`);
     else if (untracked.length)
@@ -156,11 +174,32 @@ export function gitStatus(ctx: Ctx, args: string[]) {
   }
 }
 
+/** Ignored paths as `git status --ignored` lists them: a fully ignored directory is shown once as `dir/`. */
+function ignoredDisplay(ctx: Ctx, paths: string[]): string[] {
+  if (!paths.length) return [];
+  const rules = ignoreRules(ctx.world.workdir);
+  const out = new Set<string>();
+  for (const p of paths) {
+    const m = matchIgnore(rules, p);
+    out.add(m && m.isDir ? m.path + "/" : p);
+  }
+  return [...out].sort();
+}
+
 export function gitAdd(ctx: Ctx, args: string[]) {
   const repo = requireRepo(ctx);
   const world = ctx.world;
   const all = args.includes("-A") || args.includes("--all");
+  const force = args.includes("-f") || args.includes("--force");
   const specs = args.filter((a) => !a.startsWith("-"));
+  const rules = force ? [] : ignoreRules(world.workdir);
+  /** Untracked + ignored: `git add` leaves these alone unless forced. */
+  const isIgnored = (p: string) => rules.length > 0 && !(p in repo.index) && p in world.workdir && isIgnoredPath(rules, p);
+  const refused: string[] = [];
+  const isIgnoredDir = (dir: string) => {
+    const m = matchIgnore(rules, dir, true);
+    return !!m && !m.rule.negate;
+  };
   if (!specs.length && !all)
     fail(
       ["Nothing specified, nothing added.", "hint: Maybe you wanted to say 'git add .'?"],
@@ -175,7 +214,14 @@ export function gitAdd(ctx: Ctx, args: string[]) {
         `fatal: pathspec '${spec}' did not match any files`,
         `There's no file called "${spec}" in your project. Check the spelling, or look at the Files panel / run ls to see what exists.`,
       );
-    matched.forEach((p) => targets.add(p));
+    // "." / a directory silently skips ignored files; naming an ignored file (or glob) explicitly is refused
+    const clean = spec.replace(/^\.\//, "").replace(/\/$/, "");
+    const broad = all || spec === "." || spec === ":/" || (!clean.includes("*") && !(clean in world.workdir) && !(clean in repo.index));
+    for (const p of matched) {
+      if (!isIgnored(p)) targets.add(p);
+      else if (!broad) refused.push(p);
+      else if (p === clean || isIgnoredDir(clean)) refused.push(clean);
+    }
   }
   const staged: string[] = [];
   for (const p of targets) {
@@ -192,6 +238,16 @@ export function gitAdd(ctx: Ctx, args: string[]) {
     }
   }
   if (staged.length) ctx.emit({ type: "stage", paths: staged });
+  if (refused.length)
+    ctx.error(
+      [
+        "The following paths are ignored by one of your .gitignore files:",
+        ...[...new Set(refused)].sort(),
+        "hint: Use -f if you really want to add them.",
+        'hint: Disable this message with "git config set advice.addIgnoredFile false"',
+      ],
+      "Your .gitignore says Git should not track these files (things like secrets, logs or build output usually shouldn't be committed). Git refused to stage them. If you really want this file in the repository, use git add -f <file>.",
+    );
 }
 
 export function gitRm(ctx: Ctx, args: string[]) {
@@ -261,6 +317,7 @@ export function gitCommit(ctx: Ctx, args: string[]) {
   let amend = false;
   let allowEmpty = false;
   let noEdit = false;
+  let noVerify = false;
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === "-m" || a === "--message") {
@@ -275,6 +332,7 @@ export function gitCommit(ctx: Ctx, args: string[]) {
     } else if (a === "--amend") amend = true;
     else if (a === "--allow-empty") allowEmpty = true;
     else if (a === "--no-edit") noEdit = true;
+    else if (a === "--no-verify" || a === "-n") noVerify = true;
     else if (a.startsWith("-")) fail(`error: unknown option \`${a.replace(/^-+/, "")}'`);
     else fail(`error: pathspec '${a}' did not match any file(s) known to git`, 'Did you forget quotes around your message? Use: git commit -m "your message"');
   }
@@ -299,6 +357,8 @@ export function gitCommit(ctx: Ctx, args: string[]) {
       else delete repo.index[p];
     }
   }
+  if (!noVerify && !runHook(ctx, "pre-commit"))
+    fail([], hookExplain("pre-commit", "creating the commit (nothing was committed)"));
   let message = messages.join("\n\n");
   if (!message && repo.op) message = repo.op.message;
   if (!message && amend && noEdit) message = headCommit(repo)?.message ?? "";
@@ -339,10 +399,17 @@ export function gitCommit(ctx: Ctx, args: string[]) {
     }
     return;
   }
+  if (!noVerify) {
+    const hook = runHookDetailed(ctx, "commit-msg", { [COMMIT_MSG_FILE]: message + "\n" }, [COMMIT_MSG_FILE]);
+    if (hook && !hook.ok) fail([], hookExplain("commit-msg", "creating the commit, because of the commit message (nothing was committed)"));
+    // like real Git, the hook may rewrite the message file
+    const edited = hook?.world.workdir[COMMIT_MSG_FILE]?.replace(/\n+$/, "");
+    if (edited) message = edited;
+  }
   finishCommit(ctx, repo, message, { amend, allowEmpty });
 }
 
-function formatDate(t: number) {
+export function formatDate(t: number) {
   return new Date(t * 1000).toUTCString().replace("GMT", "+0000");
 }
 

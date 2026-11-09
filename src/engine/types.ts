@@ -102,6 +102,8 @@ export interface WorkflowRun {
   commit: string;
   status: "success" | "failure";
   pr?: number;
+  /** Workflow file path (e.g. ".github/workflows/ci.yml"), used by `gh run rerun`. */
+  file?: string;
   jobs: Array<{ name: string; ok: boolean; log: string[] }>;
 }
 
@@ -169,6 +171,10 @@ export interface BisectState {
   good: string[];
   /** The first bad commit, once found. */
   found?: string;
+  /** Commits marked with `git bisect skip`. */
+  skip?: string[];
+  /** Lines replayed by `git bisect log`. */
+  log?: string[];
 }
 
 export interface World {
@@ -234,4 +240,6 @@ export interface ExecResult {
   /** Plain-language explanation of an error, for beginners. */
   explain?: string;
   clear?: boolean;
+  /** Set when the line ran the shell builtin `exit N` (N is the exit code). */
+  exit?: number;
 }

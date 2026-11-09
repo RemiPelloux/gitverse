@@ -262,6 +262,7 @@ function LessonRuntime({ lesson }: { lesson: Lesson }) {
                   terminalMode={settings.terminalMode}
                   onTerminalModeChange={(m) => updateSettings({ terminalMode: m })}
                   suggestion={settings.terminalMode === "assisted" ? suggestion : null}
+                  spotlight={current.kind === "try" && current.action && !current.check(world, start, ran) ? { path: current.action.path, kind: current.action.kind } : null}
                   guide={
                     <GuidePanel
                       lesson={lesson}

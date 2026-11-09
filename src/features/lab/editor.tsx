@@ -106,6 +106,9 @@ export function Editor({ path, onBack }: { path: string; onBack?: () => void }) 
         )}
         <span className="min-w-0 truncate font-mono text-[13px]">{path}</span>
         <StateBadge state={state} compact />
+        <span className="shrink-0 text-[11px] text-fg-3" aria-live="polite" title={t("lab.files.tip")}>
+          {pending ? t("lab.editor.saving") : t("lab.editor.autosaved")}
+        </span>
         {world.repo && (
           <div className="ml-auto flex rounded-lg bg-surface-2 p-0.5 text-[11px]">
             {(["edit", "diff"] as const).map((v) => (
@@ -181,8 +184,9 @@ export function Editor({ path, onBack }: { path: string; onBack?: () => void }) 
                 onChange={(e) => onChange(e.target.value)}
                 onBlur={() => pending && flush(draft)}
                 spellCheck={false}
+                placeholder={t("lab.editor.placeholder")}
                 aria-label={t("lab.editor.editFile", { path })}
-                className="absolute inset-0 h-full w-full resize-none overflow-hidden bg-transparent px-3 py-2 leading-6 whitespace-pre text-transparent caret-accent outline-none"
+                className="absolute inset-0 h-full w-full resize-none overflow-hidden bg-transparent px-3 py-2 leading-6 whitespace-pre text-transparent caret-accent outline-none placeholder:text-fg-3"
                 wrap="off"
               />
             </div>

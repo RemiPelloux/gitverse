@@ -259,6 +259,29 @@ select {
   animation: bob 1.6s ease-in-out infinite;
 }
 
+/* "Click me": a soft pulsing ring that points learners at a file to edit. */
+.spotlight {
+  box-shadow: 0 0 0 2px var(--accent-mark);
+  animation: spotlight-pulse 1.6s ease-in-out infinite;
+}
+@keyframes spotlight-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px var(--accent-mark), 0 0 0 0 rgba(240, 80, 50, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 2px var(--accent-mark), 0 0 0 7px rgba(240, 80, 50, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spotlight {
+    animation: none;
+  }
+}
+[data-motion="reduced"] .spotlight {
+  animation: none;
+}
+
 /* Printing / "Save as PDF" (the cheatsheet): ink on white paper, keep the accent colors. */
 @media print {
   @page {

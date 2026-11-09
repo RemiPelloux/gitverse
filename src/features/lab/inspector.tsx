@@ -1,9 +1,12 @@
 "use client";
 
 import { clsx } from "clsx";
-import { Cloud, GitBranch, GitCommitHorizontal, GitMerge, MousePointerClick, Tag } from "lucide-react";
-import { ancestors, shortId, type World } from "@/engine";
+import { useMemo } from "react";
+import { BookMarked, Cloud, GitBranch, GitCommitHorizontal, GitMerge, MousePointerClick, Tag } from "lucide-react";
+import { ancestors, layoutGraph, shortId, type World } from "@/engine";
 import { DiffBlock } from "./editor";
+import { laneColor } from "./git-graph";
+import { GitHubSections, ProtectedBadge } from "./github-panel";
 import { useT } from "@/i18n";
 import { useLab } from "./store";
 
@@ -97,8 +100,12 @@ export function RemotePanel() {
 
 export function RemoteView({ world }: { world: World }) {
   const repo = world.repo;
-  const remotes = repo ? Object.entries(repo.remotes) : [];
+  const remotes = repo ? Object.entries(repo.remotes).sort(([a], [b]) => (a === "origin" ? -1 : b === "origin" ? 1 : a.localeCompare(b))) : [];
   const t = useT();
+  const lanes = useBranchLanes(world);
+  // Two remotes can point at the same repo: show its GitHub sections once.
+  const githubFor = new Map<string, string>();
+  for (const [name, url] of remotes) if (!githubFor.has(url)) githubFor.set(url, name);
   if (!remotes.length) {
     const [before, after] = t("lab.inspector.noRemote").split("{cmd}");
     return (
@@ -129,17 +136,24 @@ export function RemoteView({ world }: { world: World }) {
           cur = world.hostedCommits[cur]?.parents[0];
         }
         return (
-          <section key={name} className="overflow-hidden rounded-lg border border-line">
+          <div key={name} className="space-y-3">
+          <section className="overflow-hidden rounded-lg border border-line">
             <header className="flex items-center gap-2 border-b border-line bg-surface-2 px-3 py-2">
-              <Cloud className="size-4 text-info" />
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium">
-                  {host.owner}/<span className="font-semibold">{host.name}</span>
+              <BookMarked className="size-4 shrink-0 text-fg-2" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm">
+                  <span className="text-fg-2">{host.owner}</span>
+                  <span className="text-fg-3"> / </span>
+                  <span className="font-semibold">{host.name}</span>
                 </p>
                 <p className="truncate font-mono text-[11px] text-fg-3">
                   {name} → {url}
                 </p>
               </div>
+              <span className="flex shrink-0 items-center gap-1 rounded-md border border-line bg-surface px-1.5 py-0.5 font-mono text-[11px] text-fg-2" title={t("lab.github.defaultBranch")}>
+                <GitBranch className="size-3" />
+                {host.defaultBranch}
+              </span>
             </header>
             <div className="px-3 py-2">
               <p className="text-[11px] font-semibold text-fg-3 ">{t("lab.inspector.branchesOnGitHub")}</p>
@@ -150,8 +164,9 @@ export function RemoteView({ world }: { world: World }) {
                     const sync = !local ? "notLocal" : local === id ? "inSync" : ancestors(repo!, local).has(id) ? "ahead" : "behind";
                     return (
                       <li key={b} className="flex items-center gap-2 text-xs">
-                        <GitBranch className="size-3.5 text-fg-3" />
-                        <span className="font-mono">{b}</span>
+                        <GitBranch className="size-3.5 shrink-0" style={{ color: lanes.has(b) ? laneColor(lanes.get(b)!) : "var(--text-3)" }} />
+                        <span className="min-w-0 truncate font-mono">{b}</span>
+                        {host.protection?.[b] && <ProtectedBadge rule={host.protection[b]} />}
                         <span className="font-mono text-[11px] text-fg-3">{shortId(id)}</span>
                         <span className={clsx("ml-auto rounded-md px-1.5 py-px text-[11px]", sync === "inSync" ? "bg-ok-soft text-ok" : "bg-warn-soft text-warn")}>{t(`lab.inspector.${sync}`)}</span>
                       </li>
@@ -193,8 +208,26 @@ export function RemoteView({ world }: { world: World }) {
               </div>
             )}
           </section>
+          {githubFor.get(url) === name && <GitHubSections host={host} />}
+          </div>
         );
       })}
     </div>
   );
+}
+
+/** Branch name -> graph lane, so branch icons here match the colors in the commit graph. */
+function useBranchLanes(world: World) {
+  return useMemo(() => {
+    const map = new Map<string, number>();
+    const repo = world.repo;
+    if (!repo) return map;
+    const laneOf = new Map(layoutGraph(world).nodes.map((n) => [n.id, n.lane]));
+    for (const [b, id] of Object.entries(repo.branches)) if (laneOf.has(id)) map.set(b, laneOf.get(id)!);
+    for (const [ref, id] of Object.entries(repo.remoteRefs)) {
+      const b = ref.slice(ref.indexOf("/") + 1);
+      if (!map.has(b) && laneOf.has(id)) map.set(b, laneOf.get(id)!);
+    }
+    return map;
+  }, [world]);
 }

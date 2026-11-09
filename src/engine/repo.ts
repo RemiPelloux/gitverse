@@ -1,4 +1,5 @@
 import { objectId } from "./hash";
+import { ignoreRules, isIgnoredPath } from "./ignore";
 import type { Commit, FileMap, Repo, World } from "./types";
 
 export const DEFAULT_BRANCH = "main";
@@ -159,12 +160,24 @@ export interface StatusEntry {
   unstaged: "modified" | "deleted" | null;
   untracked: boolean;
   conflicted: boolean;
+  /**
+   * Untracked file matched by `.gitignore`. Only reported when
+   * `status(world, { ignored: true })` is asked for (like `git status --ignored`);
+   * such entries have `untracked: false`.
+   */
+  ignored?: boolean;
 }
 
-export function status(world: World): StatusEntry[] {
+/**
+ * Working-tree status. Untracked files matched by `.gitignore` are left out
+ * (they are invisible to Git), unless `opts.ignored` is set, in which case
+ * they are reported with `ignored: true` and `untracked: false`.
+ */
+export function status(world: World, opts: { ignored?: boolean } = {}): StatusEntry[] {
   const repo = world.repo;
   if (!repo) return [];
   const head = headTree(repo);
+  const rules = ignoreRules(world.workdir);
   const paths = new Set([...Object.keys(head), ...Object.keys(repo.index), ...Object.keys(world.workdir)]);
   const out: StatusEntry[] = [];
   for (const path of [...paths].sort()) {
@@ -177,7 +190,13 @@ export function status(world: World): StatusEntry[] {
     else if (!inIndex && inHead) staged = "deleted";
     else if (inIndex && inHead && repo.index[path] !== head[path]) staged = "modified";
     let unstaged: StatusEntry["unstaged"] = null;
-    const untracked = inWork && !inIndex;
+    let untracked = inWork && !inIndex;
+    if (untracked && !inHead && rules.length && isIgnoredPath(rules, path)) {
+      if (opts.ignored) out.push({ path, staged: null, unstaged: null, untracked: false, conflicted: false, ignored: true });
+      continue;
+    }
+    // deleted from the index but still on disk and ignored (after `git rm --cached`): untracked, unless ignored
+    if (untracked && inHead && rules.length && isIgnoredPath(rules, path)) untracked = false;
     if (inIndex && !inWork) unstaged = "deleted";
     else if (inIndex && inWork && repo.index[path] !== world.workdir[path]) unstaged = "modified";
     if (staged || unstaged || untracked || conflicted) {
