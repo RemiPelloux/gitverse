@@ -213,7 +213,7 @@ function LessonRuntime({ lesson }: { lesson: Lesson }) {
         ))}
       </nav>
       <div className="ml-auto flex items-center gap-2 md:ml-0">
-        <span className="hidden items-center gap-1 rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold text-warn sm:flex">
+        <span className="hidden shrink-0 items-center gap-1 rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold whitespace-nowrap text-warn sm:flex">
           <GitCommitHorizontal className="size-3.5" /> {lesson.xp} XP
         </span>
         {usesWorkspace && (
