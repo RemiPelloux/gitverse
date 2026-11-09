@@ -1,4 +1,8 @@
 import type { CurriculumText } from "./localize";
+import { PR_FR } from "./chapters/pull-requests";
+import { TEAM_FR } from "./chapters/collaboration";
+import { ADV_A_FR } from "./chapters/advanced-a";
+import { ADV_B_FR } from "./chapters/advanced-b";
 
 /** French text for the curriculum. Same order as lessons.ts / index.ts. */
 export const CURRICULUM_FR: CurriculumText = {
@@ -42,17 +46,17 @@ export const CURRICULUM_FR: CurriculumText = {
     "pull-requests": {
       title: "Les pull requests",
       description: "Proposer, relire et fusionner des changements sur GitHub.",
-      upcoming: ["Créer une pull request", "La revue de code", "Les stratégies de fusion", "La protection de branche"],
+      upcoming: [],
     },
     collaboration: {
       title: "Travailler en équipe",
       description: "Branches de fonctionnalité, GitHub Flow et trunk-based development.",
-      upcoming: ["GitHub Flow", "Le trunk-based development", "La gestion des versions"],
+      upcoming: [],
     },
     advanced: {
       title: "Git avancé",
       description: "Cherry-pick, stash, tags, bisect et plus encore.",
-      upcoming: ["Cherry-pick", "Stash", "Tags", "Bisect", ".gitignore", "Hooks"],
+      upcoming: [],
     },
     workflows: {
       title: "Les workflows des développeurs sur GitHub",
@@ -839,5 +843,9 @@ export const CURRICULUM_FR: CurriculumText = {
         null,
       ],
     },
+    ...PR_FR,
+    ...TEAM_FR,
+    ...ADV_A_FR,
+    ...ADV_B_FR,
   },
 };

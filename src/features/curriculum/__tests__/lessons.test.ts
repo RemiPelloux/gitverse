@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { execute, headCommitId, type World } from "@/engine";
 import { ALL_LESSONS, getLesson } from "..";
+import { LESSONS } from "../lessons";
 import type { ChallengeStep, Lesson, TryStep } from "../types";
 
 /**
@@ -73,9 +74,14 @@ describe("curriculum", () => {
   it("every lesson setup is deterministic", () => {
     for (const l of ALL_LESSONS) expect(JSON.stringify(l.setup())).toBe(JSON.stringify(l.setup()));
   });
-  for (const lesson of ALL_LESSONS) {
+  // Chapters 8+ live in chapters/*.ts and are played by their own test files.
+  for (const lesson of ALL_LESSONS.filter((l) => l.id in SOLUTIONS || Object.values(LESSONS).includes(l))) {
     it(`lesson "${lesson.id}" is completable end-to-end`, () => play(lesson, SOLUTIONS));
   }
+  it("every lesson id is unique", () => {
+    const ids = ALL_LESSONS.map((l) => l.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
   it("branch challenge feedback notices you're still on main", () => {
     const l = getLesson("branches")!;
     const ch = l.steps.find((s) => s.kind === "challenge") as ChallengeStep;
