@@ -1,12 +1,12 @@
 "use client";
 
 import { clsx } from "clsx";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { Check, Flame, GitCommitHorizontal, Lock, Play, Swords, Target, Trophy } from "lucide-react";
-import { ALL_LESSONS, isUnlocked, TIER_LABEL, type Chapter, type Lesson } from "@/features/curriculum";
+import { useEffect, useState } from "react";
+import { Check, ChevronDown, Flame, GitCommitHorizontal, Lock, Play, Swords, Target, Trophy } from "lucide-react";
+import { ALL_LESSONS, isUnlocked, TIER_LABEL, type Chapter, type Lesson, type Tier } from "@/features/curriculum";
 import { localizedChapters, tierLabel } from "@/features/curriculum/localize";
 import { categoryLabel, COMMAND_DOCS } from "@/features/docs/commands";
 import { useT, type MessageKey } from "@/i18n";
@@ -43,6 +43,14 @@ function Dashboard() {
   const goal = p.settings.dailyGoal ?? 60;
   const titles = t.list("levels");
   const nextChapter = next ? chapters.find((c) => c.id === next.chapterId)! : null;
+  // Chapters the learner opened by hand (the current one is always open).
+  const [open, setOpen] = useState<Record<string, boolean>>({});
+  const toggle = (id: string) => setOpen((o) => ({ ...o, [id]: !(o[id] ?? id === nextChapter?.id) }));
+  const jump = (id: string) => {
+    setOpen((o) => ({ ...o, [id]: true }));
+    requestAnimationFrame(() => document.getElementById(`chapter-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  };
+  const tiers = [...new Set(chapters.map((c) => c.tier))];
 
   return (
     <div className="mx-auto max-w-6xl px-4 pt-6 pb-28 md:pt-8 md:pb-16">
@@ -107,15 +115,36 @@ function Dashboard() {
         </div>
       </Card>
 
+      <CourseMap chapters={chapters} currentId={nextChapter?.id} onJump={jump} />
+
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <section aria-labelledby="path-title" className="min-w-0">
-          <h2 id="path-title" className="mb-4 text-lg font-semibold">
+          <h2 id="path-title" className="sr-only">
             {t("learn.pathTitle")}
           </h2>
-          <div className="space-y-5">
-            {chapters.map((c) => (
-              <ChapterTrail key={c.id} chapter={c} nextId={next?.id} />
-            ))}
+          <div className="space-y-8">
+            {tiers.map((tier) => {
+              const inTier = chapters.filter((c) => c.tier === tier);
+              const lessonsIn = inTier.flatMap((c) => c.lessons);
+              const doneIn = lessonsIn.filter((l) => p.completed[l.id]).length;
+              return (
+                <div key={tier}>
+                  <TierHeading tier={tier} done={doneIn} total={lessonsIn.length} />
+                  <div className="mt-3 space-y-3">
+                    {inTier.map((c) => (
+                      <ChapterSection
+                        key={c.id}
+                        chapter={c}
+                        nextId={next?.id}
+                        current={c.id === nextChapter?.id}
+                        open={open[c.id] ?? c.id === nextChapter?.id}
+                        onToggle={() => toggle(c.id)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </section>
 
@@ -215,6 +244,191 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 const laneOf = (c: Chapter) => `var(--lane-${(c.number - 1) % 6})`;
 
+const TIER_TONE: Record<Tier, string> = { beginner: "bg-ok", intermediate: "bg-info", advanced: "bg-warn", expert: "bg-bad" };
+
+/** All chapters at a glance, as stations on one line. Click to jump. */
+function CourseMap({ chapters, currentId, onJump }: { chapters: Chapter[]; currentId?: string; onJump: (id: string) => void }) {
+  const t = useT();
+  const completed = useProgress((s) => s.completed);
+  const experience = useProgress((s) => s.experience);
+  const total = chapters.reduce((n, c) => n + c.lessons.length, 0);
+  const done = chapters.reduce((n, c) => n + c.lessons.filter((l) => completed[l.id]).length, 0);
+  return (
+    <Card className="mt-4 p-4 sm:p-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-sm font-semibold">{t("learn.courseMap")}</h2>
+        <p className="text-xs text-fg-3">{t("learn.courseProgress", { done, total, pct: total ? Math.round((done / total) * 100) : 0 })}</p>
+      </div>
+      <ProgressBar value={total ? done / total : 0} className="mt-2 h-1.5" label={t("learn.courseMap")} />
+      <ol className="scrollbar-thin -mx-4 mt-4 flex snap-x overflow-x-auto px-4 pb-1 sm:-mx-5 sm:px-5">
+        {chapters.map((c, i) => {
+          const n = c.lessons.length;
+          const d = c.lessons.filter((l) => completed[l.id]).length;
+          const soon = !n;
+          const locked = soon || !isUnlocked(c.lessons[0].id, completed, experience);
+          const current = c.id === currentId;
+          const firstOfTier = i === 0 || chapters[i - 1].tier !== c.tier;
+          return (
+            <li key={c.id} className="relative flex min-w-[84px] flex-1 snap-start flex-col items-center">
+              <span className={clsx("mb-2 h-4 self-start pl-1 text-[10px] font-semibold tracking-wide whitespace-nowrap text-fg-3 uppercase", !firstOfTier && "invisible")}>
+                {firstOfTier ? tierLabel(c.tier, t.locale, TIER_LABEL[c.tier]) : "·"}
+              </span>
+              {/* the line between stations */}
+              {i > 0 && <span className="absolute top-[45px] right-1/2 left-[-50%] h-[3px] rounded-full" style={{ background: d > 0 || current ? laneOf(c) : "var(--border)" }} aria-hidden />}
+              <button
+                onClick={() => onJump(c.id)}
+                className="group relative z-10 flex flex-col items-center rounded-xl px-1 pb-1 outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                aria-label={`${t("lesson.chapter", { n: c.number, title: c.title })} — ${d}/${n}`}
+                title={c.title}
+              >
+                <Ring value={n ? d / n : 0} size={44} stroke={4} className={clsx("rounded-full bg-surface transition-transform group-hover:scale-110", current && "ring-4 ring-accent/25", soon && "opacity-60")}>
+                  <span
+                    className={clsx("grid size-[30px] place-items-center rounded-full font-mono text-xs font-bold", locked ? "bg-surface-2 text-fg-3" : "text-white")}
+                    style={locked ? undefined : { background: laneOf(c) }}
+                  >
+                    {d === n && n > 0 ? <Check className="size-4" strokeWidth={3} /> : soon ? c.number : locked ? <Lock className="size-3.5" /> : c.number}
+                  </span>
+                </Ring>
+                <span className={clsx("mt-1.5 line-clamp-2 w-[80px] text-center text-[11px] leading-tight", current ? "font-semibold text-fg" : "text-fg-2")}>{c.title}</span>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+    </Card>
+  );
+}
+
+function TierHeading({ tier, done, total }: { tier: Tier; done: number; total: number }) {
+  const t = useT();
+  return (
+    <div className="flex items-center gap-3">
+      <span className={clsx("size-2.5 rounded-full", TIER_TONE[tier])} aria-hidden />
+      <h3 className="text-sm font-semibold tracking-wide text-fg-2 uppercase">{tierLabel(tier, t.locale, TIER_LABEL[tier])}</h3>
+      <span className="h-px flex-1 bg-line" aria-hidden />
+      <span className="text-xs text-fg-3">{t("learn.lessonsCount", { done, total })}</span>
+    </div>
+  );
+}
+
+/**
+ * One chapter. The current one shows its winding trail; the others are a
+ * compact row of lesson dots that expands into a grid of lesson tiles.
+ */
+function ChapterSection({ chapter, nextId, current, open, onToggle }: { chapter: Chapter; nextId?: string; current: boolean; open: boolean; onToggle: () => void }) {
+  const t = useT();
+  const completed = useProgress((s) => s.completed);
+  const saves = useProgress((s) => s.saves);
+  const experience = useProgress((s) => s.experience);
+  const total = chapter.lessons.length;
+  const done = chapter.lessons.filter((l) => completed[l.id]).length;
+  const stars = chapter.lessons.reduce((n, l) => n + (completed[l.id]?.stars ?? (completed[l.id] ? 1 : 0)), 0);
+  const mastered = total > 0 && done === total;
+  const locked = !total || !isUnlocked(chapter.lessons[0].id, completed, experience);
+  const lane = laneOf(chapter);
+  const prev = ALL_LESSONS[ALL_LESSONS.findIndex((l) => l.id === chapter.lessons[0]?.id) - 1];
+  if (current) return <ChapterTrail chapter={chapter} nextId={nextId} />;
+  if (!total)
+    return (
+      <Card id={`chapter-${chapter.id}`} className="scroll-mt-20 border-dashed bg-surface/50 p-4 sm:px-5">
+        <div className="flex items-center gap-3">
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl border-2 border-dashed border-line-strong font-mono text-sm font-bold text-fg-3">{chapter.number}</span>
+          <div className="min-w-0 flex-1">
+            <p className="flex flex-wrap items-center gap-2">
+              <span className="font-semibold text-fg-2">{chapter.title}</span>
+              <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-fg-3">{t("common.comingSoon")}</span>
+            </p>
+            <p className="truncate text-sm text-fg-3">{chapter.upcoming.join(" · ") || chapter.description}</p>
+          </div>
+        </div>
+      </Card>
+    );
+  return (
+    <Card id={`chapter-${chapter.id}`} className={clsx("scroll-mt-20 overflow-hidden", locked && "bg-surface/60")}>
+      <button onClick={onToggle} aria-expanded={open} className="flex w-full items-center gap-3 p-4 text-left hover:bg-surface-2/40 sm:px-5">
+        <span
+          className={clsx("grid size-10 shrink-0 place-items-center rounded-xl font-mono text-sm font-bold", locked ? "bg-surface-2 text-fg-3" : "text-white shadow-[inset_0_-3px_0_rgba(0,0,0,0.2)]")}
+          style={locked ? undefined : { background: lane }}
+        >
+          {mastered ? <Check className="size-5" strokeWidth={3} /> : locked ? <Lock className="size-4" /> : chapter.number}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-center gap-2">
+            <span className={clsx("font-semibold", locked && "text-fg-2")}>{chapter.title}</span>
+            {mastered && <span className="rounded-full bg-ok-soft px-2 py-0.5 text-[11px] font-medium text-ok">{t("learn.mastered")}</span>}
+          </span>
+          <span className="block truncate text-sm text-fg-3">
+            {locked && prev ? t("learn.unlockAfter", { title: prev.title }) : chapter.description}
+          </span>
+        </span>
+        {/* one dot per lesson */}
+        <span className={clsx("hidden shrink-0 items-center gap-1", !mastered && "sm:flex")} aria-hidden>
+          {chapter.lessons.map((l) => (
+            <span
+              key={l.id}
+              className={clsx("size-2.5", l.boss ? "rounded-[3px]" : "rounded-full", !completed[l.id] && "border-2 border-line-strong")}
+              style={completed[l.id] ? { background: lane } : saves[l.id] ? { borderColor: lane } : undefined}
+            />
+          ))}
+        </span>
+        <span className="flex shrink-0 items-center gap-2 text-xs text-fg-3">
+          {mastered ? <Stars n={Math.round(stars / total)} /> : `${done}/${total}`}
+          <ChevronDown className={clsx("size-4 transition-transform", open && "rotate-180")} />
+        </span>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.ul
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22 }}
+            className="grid gap-2 overflow-hidden border-t border-line/70 px-4 py-3 sm:grid-cols-2 sm:px-5"
+          >
+            {chapter.lessons.map((l) => (
+              <LessonTile key={l.id} lesson={l} lane={lane} done={!!completed[l.id]} stars={completed[l.id]?.stars ?? (completed[l.id] ? 1 : 0)} inProgress={!!saves[l.id]} unlocked={isUnlocked(l.id, completed, experience)} />
+            ))}
+          </motion.ul>
+        )}
+      </AnimatePresence>
+    </Card>
+  );
+}
+
+function LessonTile({ lesson, lane, done, stars, inProgress, unlocked }: { lesson: Lesson; lane: string; done: boolean; stars: number; inProgress: boolean; unlocked: boolean }) {
+  const t = useT();
+  const body = (
+    <>
+      <span
+        className={clsx("grid size-9 shrink-0 place-items-center text-white", lesson.boss ? "rounded-xl" : "rounded-full", !done && !unlocked && "bg-surface-2 text-fg-3")}
+        style={done ? { background: lane } : unlocked ? { background: `color-mix(in oklab, ${lane} 55%, var(--surface))` } : undefined}
+      >
+        {done ? <Check className="size-4" strokeWidth={3} /> : !unlocked ? <Lock className="size-3.5" /> : lesson.boss ? <Swords className="size-4" /> : <Play className="size-4 translate-x-px fill-current" />}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className={clsx("block truncate text-sm font-medium", !unlocked && "text-fg-3")}>{lesson.title}</span>
+        <span className="block truncate text-xs text-fg-3">
+          {done ? <Stars n={stars} /> : inProgress ? t("learn.inProgress") : lesson.boss ? `${t("learn.bossLabel")} · ${lesson.xp} XP` : `${lesson.xp} XP · ${lesson.tagline}`}
+        </span>
+      </span>
+    </>
+  );
+  const cls = "flex items-center gap-3 rounded-lg p-2";
+  return (
+    <li>
+      {unlocked ? (
+        <Link href={`/learn/${lesson.id}`} className={clsx(cls, "hover:bg-surface-2")}>
+          {body}
+        </Link>
+      ) : (
+        <div className={clsx(cls, "cursor-not-allowed")} title={t("learn.lockedLesson")} aria-disabled>
+          {body}
+        </div>
+      )}
+    </li>
+  );
+}
+
 /** Horizontal offset of the n-th node on the winding path. */
 const OFFSETS = [0, 64, 96, 64, 0, -64, -96, -64];
 const ROW = 128;
@@ -239,7 +453,7 @@ function ChapterTrail({ chapter, nextId }: { chapter: Chapter; nextId?: string }
   const donePath = pts.slice(0, doneUpTo + 2).map((p, i, arr) => (i === 0 ? `M ${p.x} ${p.y}` : `C ${arr[i - 1].x} ${arr[i - 1].y + ROW / 2}, ${p.x} ${p.y - ROW / 2}, ${p.x} ${p.y}`)).join(" ");
 
   return (
-    <Card className={clsx("overflow-hidden", !total && "opacity-75")}>
+    <Card id={`chapter-${chapter.id}`} className={clsx("scroll-mt-20 overflow-hidden ring-2 ring-accent/20", !total && "opacity-75")}>
       <div className="flex flex-wrap items-center gap-3 border-b border-line/70 p-4 sm:p-5">
         <span className="grid size-10 shrink-0 place-items-center rounded-xl font-mono text-sm font-bold text-white shadow-[inset_0_-3px_0_rgba(0,0,0,0.2)]" style={{ background: total ? lane : "var(--border-strong)" }}>
           {mastered ? <Check className="size-5" strokeWidth={3} /> : chapter.number}
@@ -381,9 +595,15 @@ function TrailNode({
   const label = (
     <>
       {next && (
-        <span className="bob absolute -top-9 left-1/2 rounded-lg border border-line bg-elevated px-2.5 py-1 text-[11px] font-bold tracking-wide whitespace-nowrap text-accent-fg uppercase shadow-[var(--shadow-card)]">
+        // The label sits on the side of the node that faces the middle, so it never leaves the card.
+        <span
+          className={clsx(
+            "absolute top-[22px] rounded-lg border border-line bg-elevated px-2.5 py-1 text-[11px] font-bold tracking-wide whitespace-nowrap text-accent-fg uppercase shadow-[var(--shadow-card)]",
+            x < 0 ? "left-[calc(50%+46px)]" : "right-[calc(50%+46px)]",
+          )}
+        >
           {inProgress ? t("learn.continueHere") : t("learn.startHere")}
-          <span className="absolute -bottom-1 left-1/2 size-2 -translate-x-1/2 rotate-45 border-r border-b border-line bg-elevated" />
+          <span className={clsx("absolute top-1/2 size-2 -translate-y-1/2 rotate-45 border-line bg-elevated", x < 0 ? "-left-1 border-b border-l" : "-right-1 border-t border-r")} />
         </span>
       )}
       {circle}
