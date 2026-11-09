@@ -3,9 +3,10 @@
 import { clsx } from "clsx";
 import { AnimatePresence, motion } from "motion/react";
 import { useMemo, useState } from "react";
-import { FilePlus2, FileText, Minus, Pencil, Plus, Trash2, Check, X } from "lucide-react";
+import { FilePlus2, FileText, Minus, MousePointerClick, Plus, SquarePen, TextCursorInput, Trash2, Check, X } from "lucide-react";
 import { status, type StatusEntry, type World } from "@/engine";
 import { useT, type T } from "@/i18n";
+import { useHydrated } from "@/components/ui/misc";
 import { useLab } from "./store";
 
 export type FileState = "untracked" | "modified" | "staged" | "staged-modified" | "conflict" | "deleted" | "clean" | "new-staged";
@@ -62,7 +63,22 @@ export function StateBadge({ state, compact }: { state: FileState; compact?: boo
   );
 }
 
-export function FilesPanel({ onOpen }: { onOpen?: (path: string) => void }) {
+const TIP_KEY = "gv-tip-edit-seen";
+function readTipSeen() {
+  try {
+    return localStorage.getItem(TIP_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/** The file a lesson step wants the learner to edit (or create): it gets a pulsing "click me" spotlight. */
+export interface Spotlight {
+  path: string;
+  kind: "edit-file" | "create-file";
+}
+
+export function FilesPanel({ onOpen, editable = true, spotlight }: { onOpen?: (path: string) => void; editable?: boolean; spotlight?: Spotlight | null }) {
   const world = useLab((s) => s.world);
   const run = useLab((s) => s.run);
   const writeFile = useLab((s) => s.writeFile);
@@ -78,10 +94,24 @@ export function FilesPanel({ onOpen }: { onOpen?: (path: string) => void }) {
 
   const states = useMemo(() => fileStates(world), [world]);
   const paths = [...states.keys()].sort();
+  // "Click a file to edit it" stays until the learner has opened a file once.
+  const hydrated = useHydrated();
+  const [openedOnce, setOpenedOnce] = useState(false);
+  const tipSeen = !hydrated || openedOnce || readTipSeen();
+  const spotPath = spotlight && spotlight.kind === "edit-file" && spotlight.path in world.workdir ? spotlight.path : null;
+  const spotNew = !!spotlight && spotlight.kind === "create-file" && !(spotlight.path in world.workdir);
 
   const open = (p: string) => {
     setOpenFile(p);
     onOpen?.(p);
+    if (!tipSeen) {
+      setOpenedOnce(true);
+      try {
+        localStorage.setItem(TIP_KEY, "1");
+      } catch {
+        /* storage unavailable */
+      }
+    }
   };
 
   const create = () => {
@@ -111,11 +141,20 @@ export function FilesPanel({ onOpen }: { onOpen?: (path: string) => void }) {
         </div>
         <button
           onClick={() => setCreating(true)}
-          className="flex items-center gap-1.5 rounded-lg border border-line px-2 py-1 text-xs text-fg-2 hover:border-line-strong hover:text-fg"
+          className={clsx(
+            "flex items-center gap-1.5 rounded-lg border px-2 py-1 text-xs hover:text-fg",
+            spotNew ? "spotlight border-accent bg-accent-soft font-medium text-accent-fg" : "border-line text-fg-2 hover:border-line-strong",
+          )}
         >
           <FilePlus2 className="size-3.5" /> {t("lab.files.newFile")}
         </button>
       </div>
+      {editable && paths.length > 0 && (!tipSeen || spotPath) && (
+        <p className={clsx("mx-3 mb-2 flex items-start gap-2 rounded-lg px-2.5 py-2 text-xs", spotPath ? "bg-accent-soft text-fg" : "bg-info-soft text-fg-2")}>
+          <MousePointerClick className={clsx("mt-px size-4 shrink-0", spotPath ? "text-accent-fg" : "text-info")} aria-hidden />
+          <span>{spotPath ? t("lab.files.spotlight", { path: spotPath }) : t("lab.files.tip")}</span>
+        </p>
+      )}
       <ul className="scrollbar-thin min-h-0 flex-1 overflow-y-auto px-2 pb-3" aria-label={t("lab.files.listLabel")}>
         <AnimatePresence initial={false}>
           {creating && (
@@ -156,8 +195,9 @@ export function FilesPanel({ onOpen }: { onOpen?: (path: string) => void }) {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -6 }}
                 className={clsx(
-                  "group flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm",
+                  "group relative flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm",
                   openFile === p ? "bg-accent-soft" : "hover:bg-surface-2",
+                  spotPath === p && "spotlight bg-accent-soft",
                 )}
               >
                 {renaming === p ? (
@@ -186,9 +226,20 @@ export function FilesPanel({ onOpen }: { onOpen?: (path: string) => void }) {
                     className={clsx("flex min-w-0 flex-1 items-center gap-2 text-left", !exists && "line-through opacity-60")}
                     onClick={() => exists && open(p)}
                     disabled={!exists}
+                    title={exists && editable ? t("lab.files.clickToEdit", { path: p }) : undefined}
                   >
                     <FileText className={clsx("size-4 shrink-0", st === "clean" ? "text-fg-3" : "text-fg-2")} aria-hidden />
                     <span className="truncate font-mono text-[13px]">{p}</span>
+                    {exists && editable && (
+                      <span
+                        className={clsx(
+                          "ml-auto flex shrink-0 items-center gap-1 rounded-md px-1.5 py-px text-[11px] font-medium",
+                          spotPath === p ? "bg-accent text-white" : "text-fg-3 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 pointer-coarse:hidden",
+                        )}
+                      >
+                        <SquarePen className="size-3" aria-hidden /> {t("lab.files.edit")}
+                      </span>
+                    )}
                   </button>
                 )}
                 <StateBadge state={st} compact />
@@ -212,7 +263,7 @@ export function FilesPanel({ onOpen }: { onOpen?: (path: string) => void }) {
                           setRenameTo(p);
                         }}
                       >
-                        <Pencil className="size-3.5" />
+                        <TextCursorInput className="size-3.5" />
                       </RowBtn>
                       <RowBtn label={t("lab.files.delete", { path: p })} onClick={() => deleteFile(p)}>
                         <Trash2 className="size-3.5" />

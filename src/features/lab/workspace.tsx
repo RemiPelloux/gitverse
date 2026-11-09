@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } fro
 import { BookOpen, Cloud, Files, GitCommitHorizontal, GitFork, Layers, SquareTerminal } from "lucide-react";
 import { useT } from "@/i18n";
 import { Editor } from "./editor";
-import { FilesPanel } from "./files-panel";
+import { FilesPanel, type Spotlight } from "./files-panel";
 import { GitGraph } from "./git-graph";
 import { CommitInspector, RemotePanel } from "./inspector";
 import { StagesVisualizer } from "./stages";
@@ -62,6 +62,7 @@ export function Workspace({
   suggestion,
   mobileHeader,
   stagesDefault,
+  spotlight,
 }: {
   ui: WorkspaceUi;
   guide?: ReactNode;
@@ -70,6 +71,8 @@ export function Workspace({
   suggestion?: string | null;
   mobileHeader?: ReactNode;
   stagesDefault?: boolean;
+  /** A file the current lesson step wants edited: the Files panel comes forward and highlights it. */
+  spotlight?: Spotlight | null;
 }) {
   const t = useT();
   const isDesktop = useMedia("(min-width: 1100px)", true);
@@ -96,6 +99,17 @@ export function Workspace({
     setSideTab(panelRequest.tab);
   }
 
+  // Bring the Files panel forward when a step asks the learner to edit a file.
+  const spotKey = spotlight ? `${spotlight.kind}:${spotlight.path}` : null;
+  const [seenSpot, setSeenSpot] = useState<string | null>(null);
+  if (spotKey !== seenSpot) {
+    setSeenSpot(spotKey);
+    if (spotKey && ui.files) {
+      setSideTab("files");
+      if (openFile && spotlight && openFile !== spotlight.path) setOpenFile(null);
+    }
+  }
+
   const onSelect = (id: string | null) => {
     selectCommit(id);
     if (id) {
@@ -114,7 +128,7 @@ export function Workspace({
     ui.editor && openFile && openFile in world.workdir ? (
       <Editor key={openFile} path={openFile} onBack={() => setOpenFile(null)} />
     ) : (
-      <FilesPanel onOpen={(p) => (ui.editor ? setOpenFile(p) : setOpenFile(null))} />
+      <FilesPanel onOpen={(p) => (ui.editor ? setOpenFile(p) : setOpenFile(null))} editable={ui.editor} spotlight={spotlight} />
     );
 
   const tabs: Array<{ id: SideTab; label: string; icon: ReactNode; show: boolean }> = [
@@ -254,7 +268,15 @@ export function Workspace({
             aria-current={mobileTab === tab.id}
             className={clsx("flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium", mobileTab === tab.id ? "text-accent-fg" : "text-fg-3")}
           >
-            <tab.icon className="size-5" />
+            <span className="relative">
+              <tab.icon className="size-5" />
+              {tab.id === "files" && spotlight && mobileTab !== "files" && (
+                <span className="absolute -top-0.5 -right-1 grid size-2.5 place-items-center" aria-hidden>
+                  <span className="absolute size-full animate-ping rounded-full bg-accent-mark/70" />
+                  <span className="size-2 rounded-full bg-accent-mark" />
+                </span>
+              )}
+            </span>
             {tab.label}
           </button>
         ))}

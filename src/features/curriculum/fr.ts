@@ -126,7 +126,7 @@ export const CURRICULUM_FR: CurriculumText = {
         },
         {
           title: "Crée un fichier",
-          body: "Un projet a besoin d'au moins un fichier. Crée README.md — un fichier qui décrit ton projet. Utilise le bouton, le panneau Fichiers, ou tape touch README.md.",
+          body: "Un projet a besoin d'au moins un fichier. Crée README.md, un fichier qui décrit ton projet : clique sur « Nouveau fichier » dans le panneau Fichiers et tape son nom, utilise le bouton ci-dessous, ou tape touch README.md. Ensuite, clique sur le fichier pour l'ouvrir et écrire dedans.",
           success: "README.md existe maintenant dans ton répertoire de travail. Git le voit, mais ne le suit pas encore.",
           actionLabel: "Créer README.md",
         },
@@ -197,7 +197,7 @@ export const CURRICULUM_FR: CurriculumText = {
       steps: [
         {
           title: "Modifie README.md",
-          body: "Ouvre README.md dans l'éditeur et change quelque chose — ajoute une ligne sur toi. (Ou appuie sur le bouton pour qu'on fasse la modification pour toi.)",
+          body: "Les fichiers se modifient directement ici, pas besoin d'une autre appli. Dans le panneau Fichiers, clique sur README.md : il s'ouvre dans l'éditeur. Ajoute une ligne sur toi ; c'est enregistré pendant que tu tapes. Regarde son badge devenir M (modifié). Sur téléphone, ouvre d'abord l'onglet Fichiers. (Bloqué ? Appuie sur le bouton et on fait la modification pour toi.)",
           success: "README.md est maintenant modifié : il est différent du dernier instantané.",
           actionLabel: "Ajouter une ligne à README.md",
         },
