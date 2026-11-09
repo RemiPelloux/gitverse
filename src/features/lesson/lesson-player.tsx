@@ -3,7 +3,7 @@
 import { clsx } from "clsx";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "zustand";
 import {
   ArrowLeft,
@@ -34,10 +34,11 @@ import { createLabStore, LabProvider, useLab } from "@/features/lab/store";
 import { Workspace } from "@/features/lab/workspace";
 import { withLearner } from "@/features/progress/learner";
 import { useProgress } from "@/features/progress/store";
-import { useT, type MessageKey } from "@/i18n";
+import { translate, useT, type MessageKey } from "@/i18n";
 import { Button } from "@/components/ui/button";
 import { ProgressBar, useHydrated } from "@/components/ui/misc";
 import { localizedDocs } from "@/features/docs/commands";
+import type { Locale } from "@/i18n/locale";
 import { CheatsheetDrawer } from "@/features/docs/cheatsheet";
 import { Celebration } from "./celebration";
 import { Scene } from "./scenes";
@@ -111,6 +112,21 @@ function LessonRuntime({ lesson }: { lesson: Lesson }) {
   );
   const world = useStore(store, (s) => s.world);
   const entries = useStore(store, (s) => s.entries);
+  // Several failed commands in a row: the terminal roasts (gently) and gives a hint
+  // that gets more direct each time (idea → command → walkthrough).
+  const seen = useRef(entries.length);
+  useEffect(() => {
+    const grew = entries.length > seen.current;
+    seen.current = entries.length;
+    const last = entries[entries.length - 1];
+    if (!grew || !last || last.ok || last.coach) return;
+    let fails = 0;
+    for (let i = entries.length - 1; i >= 0 && !entries[i].ok; i--) fails++;
+    if (fails % FAILS_BEFORE_COACH) return;
+    const hint = coachHint(lesson.steps[step], world, start, ran, fails / FAILS_BEFORE_COACH - 1, t.locale);
+    const roasts = t.list("lesson.roasts");
+    if (hint) store.getState().coachLast({ roast: roasts[Math.floor(Math.random() * roasts.length)], hint });
+  }, [entries, lesson, step, world, start, ran, t, store]);
 
   // Autosave so learners can leave and come back.
   useEffect(() => {
@@ -645,13 +661,30 @@ function ChallengeView({
 }
 
 /** The "idea" hint for a Try step: its own hint, else what its command does. */
-function tryHint(step: TryStep, t: ReturnType<typeof useT>): string | null {
+function tryHint(step: TryStep, t: { locale: Locale } & ((key: MessageKey, vars?: Record<string, string | number>) => string)): string | null {
   if (step.hint) return step.hint;
   const name = step.command?.match(/^git\s+([a-z-]+)/)?.[1];
   const doc = name ? localizedDocs(t.locale).find((d) => d.name === name) : undefined;
   if (doc) return t("lesson.hintCommand", { cmd: `git ${doc.name}`, what: doc.plain });
   if (step.action) return t("lesson.hintAction", { label: step.action.label });
   return null;
+}
+
+const FAILS_BEFORE_COACH = 3;
+
+/** Terminal hint after repeated failures; `level` grows each time (idea → command → walkthrough). */
+function coachHint(step: Step, world: World, start: World, ran: string[], level: number, locale: Locale): string | null {
+  const t = Object.assign((key: MessageKey, vars?: Record<string, string | number>) => translate(locale, key, vars), { locale });
+  if (step.kind === "try") {
+    if (level > 0 && step.command) return t("lesson.coachTry", { cmd: step.command });
+    return tryHint(step, t) ?? (step.command ? t("lesson.coachTry", { cmd: step.command }) : null);
+  }
+  if (step.kind === "challenge") {
+    const open = step.objectives.find((o) => !o.check(world, start, ran));
+    return open ? `${open.label}: ${open.hints[Math.min(level, 2)]}` : null;
+  }
+  if (step.kind === "experiment" && step.ideas.length) return t("lesson.coachExperiment", { cmd: step.ideas[0] });
+  return t("lesson.coachGeneric");
 }
 
 /** On phones the current objective stays visible above every tab. */

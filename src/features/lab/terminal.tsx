@@ -3,7 +3,7 @@
 import { clsx } from "clsx";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { ClipboardCopy, CornerDownLeft, Eraser, Lightbulb, Play, TextCursorInput } from "lucide-react";
+import { ClipboardCopy, CornerDownLeft, Eraser, Flame, Lightbulb, Play, TextCursorInput } from "lucide-react";
 import type { OutLine } from "@/engine";
 import { explainTokens } from "@/features/docs/commands";
 import { useProgress } from "@/features/progress/store";
@@ -62,7 +62,8 @@ export function Terminal({ mode, suggestion, className, onModeChange, autoFocus,
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-  }, [entries.length]);
+    // Also when a coach message is added to the last entry.
+  }, [entries]);
 
   const branch = world.repo ? (world.repo.head.kind === "branch" ? world.repo.head.name : world.repo.head.commit.slice(0, 7) + "…") : null;
 
@@ -322,6 +323,24 @@ function Entry({ entry, plainWords, explain }: { entry: TermEntry; plainWords: s
             <span className="font-semibold">{plainWords}</span>
             {explain}
           </span>
+        </motion.div>
+      )}
+      {entry.coach && (
+        <motion.div
+          initial={{ opacity: 0, y: -4, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: "spring", stiffness: 320, damping: 24 }}
+          className="mt-1.5 overflow-hidden rounded-lg border border-[var(--t-orange)]/25 font-sans text-[13px] leading-snug"
+          role="status"
+        >
+          <p className="flex gap-2 bg-[var(--t-orange)]/[0.1] px-3 py-2 text-[var(--t-orange)] italic">
+            <Flame className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <span>{entry.coach.roast}</span>
+          </p>
+          <p className="flex gap-2 bg-[var(--t-yellow)]/[0.07] px-3 py-2 text-[var(--t-yellow)]">
+            <Lightbulb className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <span>{entry.coach.hint}</span>
+          </p>
         </motion.div>
       )}
     </div>
