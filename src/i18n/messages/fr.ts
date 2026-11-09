@@ -250,6 +250,7 @@ export const fr: Messages = {
     objTodo: " — pas encore fait",
     hintNames: ["Idée", "Commande", "Solution guidée"],
     needHint: "Besoin d'un indice ?",
+    lampHint: "Indice (affiché dans le terminal)",
     roasts: [
       "Trois erreurs d'affilée. Git est patient. Ton clavier commence à s'inquiéter.",
       "Stratégie audacieuse : taper au hasard jusqu'à ce que ça marche. Essayons plutôt un indice.",

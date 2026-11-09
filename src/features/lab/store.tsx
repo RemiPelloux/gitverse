@@ -12,7 +12,7 @@ export interface TermEntry {
   explain?: string;
   branch: string | null;
   /** Shown after a run of failed commands: a friendly roast and a hint. */
-  coach?: { roast: string; hint: string };
+  coach?: { roast?: string; hint: string };
 }
 
 export interface Snapshot {
@@ -49,6 +49,8 @@ export interface LabState {
   clearTerminal: () => void;
   /** Attach a coach message to the latest terminal entry. */
   coachLast: (coach: NonNullable<TermEntry["coach"]>) => void;
+  /** Print a hint in the terminal as its own entry (the lamp button). */
+  pushHint: (input: string, hint: string) => void;
   selectCommit: (id: string | null) => void;
   setOpenFile: (path: string | null) => void;
 }
@@ -159,6 +161,8 @@ export function createLabStore(
         get().onResult?.({ world: snap.world, lines: [], events: [], ok: true, command: null }, "");
       },
       clearTerminal: () => set({ entries: [] }),
+      pushHint: (input, hint) =>
+        set((s) => ({ entries: [...s.entries, { id: entryId++, input, lines: [], ok: true, branch: branchOf(s.world), coach: { hint } }].slice(-300) })),
       coachLast: (coach) =>
         set((s) => (s.entries.length ? { entries: [...s.entries.slice(0, -1), { ...s.entries[s.entries.length - 1], coach }] } : {})),
       selectCommit: (id) => set({ selectedCommit: id }),

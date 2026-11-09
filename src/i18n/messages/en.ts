@@ -249,6 +249,7 @@ export const en = {
     objTodo: " — not done yet",
     hintNames: ["Idea", "Command", "Walkthrough"],
     needHint: "Need a hint?",
+    lampHint: "Hint (shown in the terminal)",
     roasts: [
       "Three errors in a row. Git is patient. Your keyboard is starting to worry.",
       "Bold strategy: typing things until one works. Let's try a hint instead.",

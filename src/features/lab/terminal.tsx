@@ -333,10 +333,12 @@ function Entry({ entry, plainWords, explain }: { entry: TermEntry; plainWords: s
           className="mt-1.5 overflow-hidden rounded-lg border border-[var(--t-orange)]/25 font-sans text-[13px] leading-snug"
           role="status"
         >
-          <p className="flex gap-2 bg-[var(--t-orange)]/[0.1] px-3 py-2 text-[var(--t-orange)] italic">
-            <Flame className="mt-0.5 size-4 shrink-0" aria-hidden />
-            <span>{entry.coach.roast}</span>
-          </p>
+          {entry.coach.roast && (
+            <p className="flex gap-2 bg-[var(--t-orange)]/[0.1] px-3 py-2 text-[var(--t-orange)] italic">
+              <Flame className="mt-0.5 size-4 shrink-0" aria-hidden />
+              <span>{entry.coach.roast}</span>
+            </p>
+          )}
           <p className="flex gap-2 bg-[var(--t-yellow)]/[0.07] px-3 py-2 text-[var(--t-yellow)]">
             <Lightbulb className="mt-0.5 size-4 shrink-0" aria-hidden />
             <span>{entry.coach.hint}</span>

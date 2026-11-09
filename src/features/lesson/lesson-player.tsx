@@ -126,6 +126,7 @@ function LessonRuntime({ lesson }: { lesson: Lesson }) {
     const hint = coachHint(lesson.steps[step], world, start, ran, fails / FAILS_BEFORE_COACH - 1, t.locale);
     const roasts = t.list("lesson.roasts");
     if (hint) store.getState().coachLast({ roast: roasts[Math.floor(Math.random() * roasts.length)], hint });
+    if (hint && lesson.steps[step].kind === "challenge" && fails >= 3 * FAILS_BEFORE_COACH) setStats((st) => (st.walkthrough ? st : { ...st, walkthrough: true }));
   }, [entries, lesson, step, world, start, ran, t, store]);
 
   // Autosave so learners can leave and come back.
@@ -153,6 +154,16 @@ function LessonRuntime({ lesson }: { lesson: Lesson }) {
     clearLesson(lesson.id);
     setStats({ mistakes: 0, walkthrough: false });
     goto(0);
+  };
+
+  // The lamp: each click prints a more direct hint in the terminal.
+  const [lamp, setLamp] = useState({ step, level: 0 });
+  const askHint = () => {
+    const level = lamp.step === step ? lamp.level : 0;
+    const hint = coachHint(current, world, start, ran, level, t.locale);
+    if (hint) store.getState().pushHint("hint", hint);
+    if (current.kind === "challenge" && level >= 2) setStats((st) => ({ ...st, walkthrough: true }));
+    setLamp({ step, level: level + 1 });
   };
 
   const chapter = localizedChapters(t.locale).find((c) => c.id === lesson.chapterId) ?? getChapter(lesson.chapterId)!;
@@ -199,6 +210,11 @@ function LessonRuntime({ lesson }: { lesson: Lesson }) {
         <span className="hidden items-center gap-1 rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold text-warn sm:flex">
           <GitCommitHorizontal className="size-3.5" /> {lesson.xp} XP
         </span>
+        {usesWorkspace && (
+          <Button variant="ghost" size="sm" onClick={askHint} title={t("lesson.lampHint")} aria-label={t("lesson.lampHint")}>
+            <Lightbulb className="size-4 text-warn" />
+          </Button>
+        )}
         <Button variant="ghost" size="sm" onClick={() => setSheetOpen(true)} title={t("lesson.cheatsheet")} aria-haspopup="dialog">
           <ClipboardList className="size-3.5" /> <span className="hidden sm:inline">{t("lesson.cheatsheet")}</span>
         </Button>
