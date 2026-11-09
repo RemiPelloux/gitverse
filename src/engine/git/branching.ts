@@ -1,4 +1,5 @@
 import { Ctx, fail } from "../context";
+import { merge3 } from "../diff";
 import { shortId } from "../hash";
 import {
   addReflog,
@@ -520,7 +521,7 @@ export function gitReset(ctx: Ctx, args: string[]) {
 }
 
 /** Resolve every rev up front, like Git's sequencer does before applying anything. */
-function resolvePicks(repo: Repo, kind: "revert" | "cherry-pick", revs: string[]): string[] {
+function resolvePicks(repo: Repo, kind: "revert" | "cherry-pick", revs: string[], mainline?: number): string[] {
   return revs.map((rev) => {
     const id = resolveRev(repo, rev);
     if (!id)
@@ -529,25 +530,38 @@ function resolvePicks(repo: Repo, kind: "revert" | "cherry-pick", revs: string[]
         `There's no commit called "${rev}". Copy an id from git log --oneline (add --all to see other branches).`,
       );
     const c = repo.commits[id];
-    if (c.parents.length > 1)
+    if (c.parents.length > 1 && !mainline)
       fail(
-        `error: commit ${c.id} is a merge but no -m option was given.`,
-        `Git can't ${kind} a merge commit without being told which parent to compare against, and this simulator doesn't support -m yet. Pick the individual commits instead.`,
+        [`error: commit ${c.id} is a merge but no -m option was given.`, `fatal: ${kind} failed`],
+        `A merge commit has two parents, so Git needs to know which side to keep. Add -m 1 to compare against the first parent (the branch the merge was made on): git ${kind} -m 1 ${rev}.`,
+      );
+    if (mainline && mainline > Math.max(1, c.parents.length))
+      fail(
+        [c.parents.length > 1 ? `error: commit ${c.id} does not have parent ${mainline}` : `error: mainline was specified but commit ${c.id} is not a merge.`, `fatal: ${kind} failed`],
+        c.parents.length > 1
+          ? `This merge commit has only ${c.parents.length} parents. Use -m 1 for the branch the merge was made on.`
+          : `This commit isn't a merge, so -m doesn't apply. Drop the -m option.`,
       );
     return id;
   });
 }
 
 /** Apply one commit. Returns false when it stopped on a conflict (repo.op is set). */
-function applyCommit(ctx: Ctx, repo: Repo, kind: "revert" | "cherry-pick", id: string, todo: string[], origHead: string): boolean {
+function applyCommit(ctx: Ctx, repo: Repo, kind: "revert" | "cherry-pick", id: string, todo: string[], origHead: string, mainline?: number): boolean {
   const c = repo.commits[id];
   const head = headCommitId(repo)!;
-  const parentTree = c.parents[0] ? repo.commits[c.parents[0]].tree : {};
+  const parentId = c.parents[(mainline ?? 1) - 1];
+  const parentTree = parentId ? repo.commits[parentId].tree : {};
   const headTreeNow = repo.commits[head].tree;
   const [base, theirs] = kind === "revert" ? [c.tree, parentTree] : [parentTree, c.tree];
   const label = `${shortId(id)} (${oneLine(c)})`;
   const result = mergeTrees(base, headTreeNow, theirs, "HEAD", (kind === "revert" ? "parent of " : "") + label);
-  const message = kind === "revert" ? `Revert "${oneLine(c)}"\n\nThis reverts commit ${c.id}.` : c.message;
+  const message =
+    kind !== "revert"
+      ? c.message
+      : c.parents.length > 1
+        ? `Revert "${oneLine(c)}"\n\nThis reverts commit ${c.id}, reversing\nchanges made to ${parentId}.`
+        : `Revert "${oneLine(c)}"\n\nThis reverts commit ${c.id}.`;
   for (const p of Object.keys(headTreeNow)) if (!(p in result.work)) delete ctx.world.workdir[p];
   repo.index = { ...result.tree };
   Object.assign(ctx.world.workdir, result.work);
@@ -562,6 +576,7 @@ function applyCommit(ctx: Ctx, repo: Repo, kind: "revert" | "cherry-pick", id: s
       author: kind === "cherry-pick" ? c.author : undefined,
       todo,
       origHead,
+      mainline,
     };
     ctx.error([
       `error: could not ${kind === "revert" ? "revert" : "apply"} ${shortId(id)}... ${oneLine(c)}`,
@@ -582,7 +597,7 @@ function applyCommit(ctx: Ctx, repo: Repo, kind: "revert" | "cherry-pick", id: s
       ctx.error([`The previous ${kind} is now empty, possibly due to conflict resolution.`], "These changes are already in your branch, so there is nothing new to apply.");
       return false;
     }
-    repo.op = { kind, theirs: id, theirsLabel: label, conflicts: [], message, author: kind === "cherry-pick" ? c.author : undefined, todo, origHead };
+    repo.op = { kind, theirs: id, theirsLabel: label, conflicts: [], message, author: kind === "cherry-pick" ? c.author : undefined, todo, origHead, mainline };
     ctx.error(
       [
         `The previous ${kind} is now empty, possibly due to conflict resolution.`,
@@ -601,10 +616,10 @@ function applyCommit(ctx: Ctx, repo: Repo, kind: "revert" | "cherry-pick", id: s
   return true;
 }
 
-function runPicks(ctx: Ctx, repo: Repo, kind: "revert" | "cherry-pick", todo: string[], origHead: string) {
+function runPicks(ctx: Ctx, repo: Repo, kind: "revert" | "cherry-pick", todo: string[], origHead: string, mainline?: number) {
   while (todo.length) {
     const id = todo.shift()!;
-    if (!applyCommit(ctx, repo, kind, id, todo, origHead)) return;
+    if (!applyCommit(ctx, repo, kind, id, todo, origHead, mainline)) return;
   }
 }
 
@@ -622,6 +637,7 @@ function sequencer(ctx: Ctx, args: string[], kind: "revert" | "cherry-pick") {
       );
     const todo = [...(op.todo ?? [])];
     const origHead = op.origHead ?? headCommitId(repo)!;
+    const mainline = op.mainline;
     if (skip) {
       hardReset(ctx.world, repo, headTree(repo));
       repo.op = null;
@@ -646,7 +662,7 @@ function sequencer(ctx: Ctx, args: string[], kind: "revert" | "cherry-pick") {
       // finishCommit keeps op.author (the original author of a cherry-picked commit)
       finishCommit(ctx, repo, op.message);
     }
-    runPicks(ctx, repo, kind, todo, origHead);
+    runPicks(ctx, repo, kind, todo, origHead, mainline);
     return;
   }
   if (repo.op)
@@ -654,7 +670,23 @@ function sequencer(ctx: Ctx, args: string[], kind: "revert" | "cherry-pick") {
       [`error: ${repo.op.kind === kind ? `${kind} is already in progress` : `you are in the middle of a ${repo.op.kind}`}`, `hint: try "git ${repo.op.kind} (--continue | --abort)"`, `fatal: ${kind} failed`],
       `Finish the ${repo.op.kind} that's in progress first (fix conflicts, git add, then --continue), or cancel it with git ${repo.op.kind} --abort.`,
     );
-  const revs = args.filter((a) => !a.startsWith("-"));
+  // -m <n> / --mainline <n> / --mainline=<n>: which parent of a merge to compare against
+  let mainline: number | undefined;
+  const revs: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    let value: string | undefined;
+    if (a === "-m" || a === "--mainline") value = args[++i];
+    else if (a.startsWith("--mainline=")) value = a.slice("--mainline=".length);
+    else if (/^-m\d+$/.test(a)) value = a.slice(2);
+    else {
+      if (!a.startsWith("-")) revs.push(a);
+      continue;
+    }
+    if (!value || !/^[1-9]\d*$/.test(value))
+      fail(`error: option \`mainline' expects a number greater than zero`, `-m needs the number of the parent to keep, usually 1: git ${kind} -m 1 <merge-commit>.`);
+    mainline = Number(value);
+  }
   if (!revs.length)
     fail(
       `usage: git ${kind} <commit>...`,
@@ -662,13 +694,13 @@ function sequencer(ctx: Ctx, args: string[], kind: "revert" | "cherry-pick") {
     );
   const head = headCommitId(repo);
   if (!head) fail("fatal: your current branch does not have any commits yet", `Make a first commit before running git ${kind}.`);
-  const todo = resolvePicks(repo, kind, revs);
+  const todo = resolvePicks(repo, kind, revs, mainline);
   if (dirtyTrackedPaths(ctx.world, repo).length)
     fail(
       [`error: your local changes would be overwritten by ${kind}.`, "hint: commit your changes or stash them to proceed.", `fatal: ${kind} failed`],
       `Save or stash your current edits before running git ${kind}.`,
     );
-  runPicks(ctx, repo, kind, todo, head);
+  runPicks(ctx, repo, kind, todo, head, mainline);
 }
 
 export function gitRevert(ctx: Ctx, args: string[]) {
@@ -797,6 +829,75 @@ function continueRebase(ctx: Ctx, repo: Repo, state: NonNullable<NonNullable<Rep
 
 // ---------------------------------------------------------------- stash
 
+/**
+ * Apply a stash entry like `git stash apply`: a three-way merge between the
+ * commit the stash was made on (base), HEAD (ours) and the stashed files
+ * (theirs). Returns false when it stopped on conflicts (the files are left
+ * with conflict markers and the caller keeps the stash entry).
+ */
+function applyStash(ctx: Ctx, repo: Repo, s: Repo["stash"][number], stashed: Record<string, string>): boolean {
+  const baseTree = repo.commits[s.base].tree;
+  const head = headTree(repo);
+  const work = ctx.world.workdir;
+  const changed = [...new Set([...Object.keys(baseTree), ...Object.keys(stashed)])].filter((p) => baseTree[p] !== stashed[p]).sort();
+  // untracked files saved with -u: restored as they were
+  const untracked = Object.keys(s.workdir).filter((p) => !(p in baseTree) && !(p in s.index));
+  // never overwrite edits that aren't committed
+  const blocked = changed.filter((p) => work[p] !== head[p] && work[p] !== stashed[p]);
+  const exists = untracked.filter((p) => p in work && work[p] !== s.workdir[p]);
+  if (blocked.length)
+    fail(
+      ["error: Your local changes to the following files would be overwritten by merge:", ...blocked.map((p) => `\t${p}`), "Please commit your changes or stash them before you merge.", "Aborting"],
+      "The stashed changes touch files you've edited since. Commit or discard those edits, then try again.",
+    );
+  if (exists.length)
+    fail(
+      [...exists.map((p) => `${p} already exists, no checkout`), "error: could not restore untracked files from stash"],
+      "A file saved in the stash already exists in your folder. Move or delete it, then try again.",
+    );
+  const conflicts: string[] = [];
+  const messages: string[] = [];
+  for (const p of changed) {
+    const b = baseTree[p];
+    const o = head[p];
+    const t = stashed[p];
+    if (o === t) continue;
+    if (o === b) {
+      if (t === undefined) delete work[p];
+      else work[p] = t;
+    } else if (o === undefined) {
+      // deleted on this branch, edited in the stash: keep the stashed version for the learner to decide
+      // staged (like Git's unmerged entry) so that git reset --hard cleans it up
+      work[p] = t!;
+      repo.index[p] = t!;
+      conflicts.push(p);
+      messages.push(`CONFLICT (modify/delete): ${p} deleted in Updated upstream and modified in Stashed changes.  Version Stashed changes of ${p} left in tree.`);
+    } else if (t === undefined) {
+      conflicts.push(p);
+      messages.push(`CONFLICT (modify/delete): ${p} deleted in Stashed changes and modified in Updated upstream.  Version Updated upstream of ${p} left in tree.`);
+    } else {
+      messages.push(`Auto-merging ${p}`);
+      const m = merge3(b ?? "", o, t, "Updated upstream", "Stashed changes");
+      work[p] = m.text;
+      if (!m.clean) {
+        conflicts.push(p);
+        messages.push(`CONFLICT (${b === undefined ? "add/add" : "content"}): Merge conflict in ${p}`);
+      }
+    }
+  }
+  for (const p of untracked) work[p] = s.workdir[p];
+  // like real Git (without --index): files that were newly added stay staged
+  for (const p of Object.keys(s.index)) if (!(p in baseTree) && !(p in repo.index) && p in stashed && !conflicts.includes(p)) repo.index[p] = s.index[p];
+  if (messages.length) ctx.out(messages, "muted");
+  if (!conflicts.length) return true;
+  ctx.error(
+    [],
+    `The stashed work doesn't fit cleanly on this commit: ${conflicts.join(", ")} changed here too (or doesn't exist here). Nothing is lost: the stash entry is kept. Fix the file by hand, or undo with git reset --hard and apply the stash on the branch where you made it.`,
+  );
+  ctx.emit({ type: "conflict", paths: conflicts });
+  return false;
+}
+
 export function gitStash(ctx: Ctx, args: string[]) {
   const repo = requireRepo(ctx);
   const sub = args[0] && !args[0].startsWith("-") ? args[0] : "push";
@@ -867,26 +968,12 @@ export function gitStash(ctx: Ctx, args: string[]) {
   if (sub === "pop" || sub === "apply" || sub === "drop") {
     const n = stashIndex();
     const s = repo.stash[n];
-    if (sub !== "drop") {
-      const baseTree = repo.commits[s.base].tree;
-      const current = { ...ctx.world.workdir };
-      const conflicts: string[] = [];
-      for (const [p, content] of Object.entries(s.workdir)) {
-        const b = baseTree[p];
-        const o = current[p];
-        if (o === b || o === undefined) ctx.world.workdir[p] = content;
-        else if (o !== content) {
-          conflicts.push(p);
-        }
-      }
-      for (const p of Object.keys(baseTree)) if (!(p in s.workdir) && ctx.world.workdir[p] === baseTree[p]) delete ctx.world.workdir[p];
-      if (conflicts.length)
-        fail(
-          ["error: Your local changes to the following files would be overwritten by merge:", ...conflicts.map((p) => `\t${p}`), "Please commit your changes or stash them before you merge.", "Aborting"],
-          "The stashed changes touch files you've edited since. Commit or discard those edits, then try again.",
-        );
-      // like real Git (without --index): files that were newly added stay staged
-      for (const p of Object.keys(s.index)) if (!(p in baseTree) && !(p in repo.index) && p in s.workdir) repo.index[p] = s.index[p];
+    let kept = false;
+    if (sub !== "drop") kept = !applyStash(ctx, repo, s, stashTree(s));
+    if (kept) {
+      if (sub === "pop") ctx.out("The stash entry is kept in case you need it again.");
+      ctx.emit({ type: "stash", action: "pop" });
+      return;
     }
     if (sub !== "apply") {
       repo.stash.splice(n, 1);

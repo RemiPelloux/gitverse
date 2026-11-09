@@ -3,6 +3,7 @@ import { PR_LESSONS } from "./chapters/pull-requests";
 import { TEAM_LESSONS } from "./chapters/collaboration";
 import { ADV_A_LESSONS } from "./chapters/advanced-a";
 import { ADV_B_LESSONS } from "./chapters/advanced-b";
+import { RESCUE_LESSONS } from "./chapters/rescue";
 import { WORKFLOW_LESSONS } from "./chapters/workflows";
 import type { Chapter, Lesson, Tier } from "./types";
 
@@ -114,8 +115,8 @@ export const CHAPTERS: Chapter[] = [
     title: "Real-World Rescue Missions",
     tier: "expert",
     description: "Committed a secret? Wrong branch? Broke main? Fix it.",
-    lessons: [],
-    upcoming: ["Committed to the wrong branch", "Broke main", "Accidentally committed a secret"],
+    lessons: RESCUE_LESSONS,
+    upcoming: [],
   },
 ];
 

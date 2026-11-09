@@ -101,7 +101,7 @@ const createPr: Lesson = {
         "On a team, nobody merges into main on their own. You push a branch, then open a pull request: a request to merge that branch into main.",
         "A pull request is also a conversation. Teammates read your change, comment on it, and approve it before it lands. You'll do it all from the terminal with gh, GitHub's command-line tool.",
       ],
-      scene: "branch-split",
+      scene: "repo-state",
     },
     {
       kind: "try",

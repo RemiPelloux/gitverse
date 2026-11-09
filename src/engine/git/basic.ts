@@ -622,7 +622,12 @@ export function gitShow(ctx: Ctx, args: string[]) {
   ctx.out("");
   for (const l of c.message.split("\n")) ctx.out(`    ${l}`);
   ctx.out("");
-  if (c.parents.length <= 1) printTreeDiff(ctx, c.parents[0] ? repo.commits[c.parents[0]].tree : {}, c.tree);
+  if (c.parents.length > 1) return;
+  const parentTree = c.parents[0] ? repo.commits[c.parents[0]].tree : {};
+  if (args.includes("--stat")) ctx.out(diffStat(parentTree, c.tree));
+  else if (args.includes("--name-only"))
+    ctx.out(Object.keys({ ...parentTree, ...c.tree }).filter((p) => parentTree[p] !== c.tree[p]).sort());
+  else printTreeDiff(ctx, parentTree, c.tree);
 }
 
 export function gitDiff(ctx: Ctx, args: string[]) {

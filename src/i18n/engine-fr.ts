@@ -15,6 +15,18 @@ const EXACT: Record<string, string> = {
   "Only Git and a few file commands work in this sandbox. Type help to see them.":
     "Seuls Git et quelques commandes de fichiers fonctionnent dans ce bac à sable. Tape help pour les voir.",
 
+  // git/branching.ts (revert / cherry-pick -m)
+  "This commit isn't a merge, so -m doesn't apply. Drop the -m option.":
+    "Ce commit n'est pas une fusion, donc -m ne s'applique pas. Retire l'option -m.",
+
+  // git/remote.ts (push --force-with-lease)
+  "--force-with-lease refused: GitHub's branch has commits you haven't seen since your last fetch (someone else pushed). Overwriting would destroy their work. Run git fetch, look at what arrived (git log --oneline --all), keep it, then push again.":
+    "--force-with-lease a refusé : la branche sur GitHub a des commits que tu n'as pas vus depuis ton dernier fetch (quelqu'un d'autre a poussé). Les écraser détruirait son travail. Lance git fetch, regarde ce qui est arrivé (git log --oneline --all), garde-le, puis pousse à nouveau.",
+
+  // git/branching.ts (stash apply)
+  "A file saved in the stash already exists in your folder. Move or delete it, then try again.":
+    "Un fichier enregistré dans le stash existe déjà dans ton dossier. Déplace-le ou supprime-le, puis réessaie.",
+
   // git/helpers.ts
   "This folder isn't a Git repository yet, so Git has nowhere to record history. Run `git init` first to create one.":
     "Ce dossier n'est pas encore un dépôt Git, donc Git n'a nulle part où enregistrer l'historique. Lance d'abord `git init` pour en créer un.",
@@ -451,8 +463,20 @@ const PATTERNS: Rule[] = [
     (m) => `Il n'y a aucun commit nommé "${m[1]}". Copie un identifiant depuis git log --oneline (ajoute --all pour voir les autres branches).`,
   ],
   [
-    /^Git can't (\S+) a merge commit without being told which parent to compare against, and this simulator doesn't support -m yet\. Pick the individual commits instead\.$/,
-    (m) => `Git ne peut pas faire de ${m[1]} sur un commit de fusion sans savoir à quel parent le comparer, et ce simulateur ne gère pas encore -m. Choisis plutôt les commits un par un.`,
+    /^A merge commit has two parents, so Git needs to know which side to keep\. Add -m 1 to compare against the first parent \(the branch the merge was made on\): (.+)\.$/,
+    (m) => `Un commit de fusion a deux parents, donc Git doit savoir quel côté garder. Ajoute -m 1 pour comparer avec le premier parent (la branche sur laquelle la fusion a été faite) : ${m[1]}.`,
+  ],
+  [
+    /^This merge commit has only (\d+) parents\. Use -m 1 for the branch the merge was made on\.$/,
+    (m) => `Ce commit de fusion n'a que ${m[1]} parents. Utilise -m 1 pour la branche sur laquelle la fusion a été faite.`,
+  ],
+  [
+    /^The stashed work doesn't fit cleanly on this commit: (.+) changed here too \(or doesn't exist here\)\. Nothing is lost: the stash entry is kept\. Fix the file by hand, or undo with git reset --hard and apply the stash on the branch where you made it\.$/,
+    (m) => `Le travail mis de côté ne s'applique pas proprement sur ce commit : ${m[1]} a aussi changé ici (ou n'existe pas ici). Rien n'est perdu : l'entrée du stash est conservée. Corrige le fichier à la main, ou annule avec git reset --hard et applique le stash sur la branche où tu l'as créé.`,
+  ],
+  [
+    /^-m needs the number of the parent to keep, usually 1: (.+)$/,
+    (m) => `-m attend le numéro du parent à garder, en général 1 : ${m[1]}`,
   ],
   [
     /^The commit changes lines that are also different on your branch, so Git can't apply it on its own\. Open each conflicted file, keep the right content \(remove the <<<<<<< ======= >>>>>>> markers\), git add it, then run git (\S+) --continue\. Or give up with git \1 --abort\.$/,

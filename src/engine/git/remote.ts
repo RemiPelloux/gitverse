@@ -155,7 +155,9 @@ export function gitPush(ctx: Ctx, args: string[]) {
   }
   const has = (...f: string[]) => f.some((x) => args.includes(x));
   const setUpstream = has("-u", "--set-upstream");
-  const force = has("-f", "--force", "--force-with-lease") || args.some((a) => a.startsWith("--force-with-lease="));
+  const hardForce = has("-f", "--force");
+  const lease = !hardForce && (has("--force-with-lease") || args.some((a) => a.startsWith("--force-with-lease=")));
+  const force = hardForce || lease;
   const del = has("-d", "--delete");
   const pushTags = has("--tags");
   const all = has("--all");
@@ -246,6 +248,11 @@ export function gitPush(ctx: Ctx, args: string[]) {
       rejected.push(` ! [rejected]        ${srcName} -> ${dst} (fetch first)`);
       return;
     }
+    // --force-with-lease: only overwrite what you last saw (your origin/<branch>)
+    if (old && !fastForward && lease && repo.remoteRefs[`${remoteName}/${dst}`] !== old) {
+      rejected.push(` ! [rejected]        ${srcName} -> ${dst} (stale info)`);
+      return;
+    }
     objects += transfer(repo.commits, ctx.world.hostedCommits, src);
     if (!old) lines.push({ text: ` * [new branch]      ${srcName} -> ${dst}`, kind: "success" });
     else if (!fastForward) lines.push({ text: ` + ${shortId(old)}...${shortId(src)} ${srcName} -> ${dst} (forced update)`, kind: "success" });
@@ -310,7 +317,10 @@ export function gitPush(ctx: Ctx, args: string[]) {
         "muted",
       );
       ctx.explain = "Someone else pushed new commits to GitHub that you don't have. Git refuses to overwrite them. Run git pull to bring them in, then push again.";
-    } else ctx.explain = "A tag with that name already exists on GitHub. Tags aren't supposed to move; delete it first or pick a new name.";
+    } else if (rejected.some((r) => r.includes("stale info")))
+      ctx.explain =
+        "--force-with-lease refused: GitHub's branch has commits you haven't seen since your last fetch (someone else pushed). Overwriting would destroy their work. Run git fetch, look at what arrived (git log --oneline --all), keep it, then push again.";
+    else ctx.explain = "A tag with that name already exists on GitHub. Tags aren't supposed to move; delete it first or pick a new name.";
   }
 }
 

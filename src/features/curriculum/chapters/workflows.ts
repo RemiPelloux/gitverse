@@ -676,7 +676,7 @@ const secrets: Lesson = {
         "If a secret is ever pushed, deleting the file isn't enough: history keeps every version of every file, and clones may already have it. Rotate it right away: revoke the token, make a new one, update the secret. (Erasing it from history is a Rescue topic, coming soon.)",
         "Give each token only the rights it needs, least privilege: a deploy token shouldn't be able to delete the repository.",
       ],
-      scene: "history",
+      scene: "repo-state",
     },
     {
       kind: "challenge",

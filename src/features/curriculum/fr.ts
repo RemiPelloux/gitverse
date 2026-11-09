@@ -3,6 +3,7 @@ import { PR_FR } from "./chapters/pull-requests";
 import { TEAM_FR } from "./chapters/collaboration";
 import { ADV_A_FR } from "./chapters/advanced-a";
 import { ADV_B_FR } from "./chapters/advanced-b";
+import { RESCUE_FR } from "./chapters/rescue";
 import { WORKFLOW_FR } from "./chapters/workflows";
 
 /** French text for the curriculum. Same order as lessons.ts / index.ts. */
@@ -67,7 +68,7 @@ export const CURRICULUM_FR: CurriculumText = {
     scenarios: {
       title: "Missions de sauvetage réelles",
       description: "Un secret commité ? La mauvaise branche ? main cassée ? Répare tout ça.",
-      upcoming: ["Commit sur la mauvaise branche", "main est cassée", "Un secret commité par accident"],
+      upcoming: [],
     },
   },
   lessons: {
@@ -849,5 +850,6 @@ export const CURRICULUM_FR: CurriculumText = {
     ...ADV_A_FR,
     ...ADV_B_FR,
     ...WORKFLOW_FR,
+    ...RESCUE_FR,
   },
 };

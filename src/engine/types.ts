@@ -45,6 +45,8 @@ export interface OpState {
   todo?: string[];
   /** cherry-pick / revert: HEAD before the sequence started (for --abort). */
   origHead?: string;
+  /** cherry-pick / revert -m <n>: the parent of a merge commit to compare against. */
+  mainline?: number;
   rebase?: {
     branch: string | null;
     upstream: string;
