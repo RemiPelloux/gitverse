@@ -1,7 +1,9 @@
 import { CommandError, Ctx, fail } from "./context";
 import { gitAdd, gitCommit, gitDiff, gitInit, gitLog, gitMv, gitReflog, gitRestore, gitRm, gitShow, gitStatus, gitTag } from "./git/basic";
 import { gitBranch, gitCheckout, gitCherryPick, gitMerge, gitRebase, gitReset, gitRevert, gitStash, gitSwitch } from "./git/branching";
+import { gitBisect } from "./git/advanced";
 import { PROJECT_PATH } from "./git/helpers";
+import { runGh } from "./gh";
 import { gitClone, gitFetch, gitPull, gitPush, gitRemote } from "./git/remote";
 import { clone } from "./repo";
 import type { ExecResult, World } from "./types";
@@ -98,6 +100,7 @@ export const GIT_COMMANDS: Record<string, Handler> = {
   restore: gitRestore,
   "cherry-pick": gitCherryPick,
   stash: gitStash,
+  bisect: gitBisect,
   tag: gitTag,
   reflog: gitReflog,
   remote: gitRemote,
@@ -110,7 +113,7 @@ export const GIT_COMMANDS: Record<string, Handler> = {
 };
 
 /** Real Git commands this simulator doesn't model yet: we say so instead of pretending. */
-const NOT_YET = ["bisect", "worktree", "submodule", "lfs", "blame", "am", "apply", "format-patch", "gc", "notes", "sparse-checkout", "grep", "clean", "describe", "shortlog"];
+const NOT_YET = ["worktree", "submodule", "lfs", "blame", "am", "apply", "format-patch", "gc", "notes", "sparse-checkout", "grep", "clean", "describe", "shortlog"];
 
 const SHELL: Record<string, Handler> = {
   ls: (ctx, args) => {
@@ -269,6 +272,10 @@ function runOne(ctx: Ctx, cmd: ParsedCommand): string | null {
       [`git: '${sub}' is not a git command. See 'git --help'.`, ...(guess ? ["", "The most similar command is", `\t${guess}`] : [])],
       guess ? `Looks like a typo — did you mean git ${guess}?` : "That isn't a Git command. Type help to see what you can use.",
     );
+  }
+  if (name === "gh") {
+    runGh(ctx, args);
+    return args[0] ? `gh ${args[0]}` : "gh";
   }
   if (name === "echo" && cmd.redirect) {
     const text = args.join(" ") + "\n";

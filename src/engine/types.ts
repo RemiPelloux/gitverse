@@ -57,6 +57,63 @@ export interface StashEntry {
   message: string;
 }
 
+/** A pull request on the simulated GitHub. Numbers are shared with issues, like on GitHub. */
+export interface PullRequest {
+  number: number;
+  title: string;
+  body: string;
+  author: string;
+  /** Branch with the changes. */
+  head: string;
+  /** Branch it should be merged into. */
+  base: string;
+  /** Commit the head branch pointed to when the PR was last updated. */
+  headCommit: string;
+  state: "open" | "merged" | "closed";
+  reviews: Array<{ author: string; state: "approved" | "changes_requested" | "commented"; body: string }>;
+  mergedWith?: "merge" | "squash" | "rebase";
+  mergeCommit?: string;
+}
+
+export interface Issue {
+  number: number;
+  title: string;
+  body: string;
+  author: string;
+  state: "open" | "closed";
+  labels: string[];
+  /** Commit or PR ("#12") that closed it. */
+  closedBy?: string;
+}
+
+export interface Release {
+  tag: string;
+  title: string;
+  notes: string;
+  author: string;
+}
+
+/** One GitHub Actions workflow run. */
+export interface WorkflowRun {
+  id: number;
+  workflow: string;
+  event: "push" | "pull_request";
+  branch: string;
+  commit: string;
+  status: "success" | "failure";
+  pr?: number;
+  jobs: Array<{ name: string; ok: boolean; log: string[] }>;
+}
+
+/** Branch protection rule (GitHub "rulesets" / protected branches). */
+export interface Protection {
+  /** Direct pushes are rejected: changes must arrive through a pull request. */
+  requirePullRequest: boolean;
+  requiredApprovals: number;
+  /** Names of workflow jobs that must pass before merging. */
+  requiredChecks: string[];
+}
+
 /** A repository hosted on the simulated GitHub. */
 export interface HostedRepo {
   url: string;
@@ -66,6 +123,18 @@ export interface HostedRepo {
   defaultBranch: string;
   /** Tags published with `git push --tags` / `git push origin <tag>`. */
   tags?: Record<string, string>;
+  pulls?: PullRequest[];
+  issues?: Issue[];
+  releases?: Release[];
+  runs?: WorkflowRun[];
+  /** Actions secrets: name -> value (never printed). */
+  secrets?: Record<string, string>;
+  /** Branch name -> protection rule. */
+  protection?: Record<string, Protection>;
+  /** Simulated teammates who review (and approve) new pull requests. */
+  autoReviewers?: string[];
+  /** Next number for a PR or issue. */
+  nextNumber?: number;
 }
 
 export interface Repo {
@@ -87,6 +156,19 @@ export interface Repo {
   remoteRefs: Record<string, string>;
   /** Local branch -> upstream ("origin/main"). */
   upstream: Record<string, string>;
+  /** `git config` values other than user.name / user.email (e.g. core.hooksPath). */
+  config?: Record<string, string>;
+  /** An in-progress `git bisect` session. */
+  bisect?: BisectState | null;
+}
+
+export interface BisectState {
+  /** Branch (or detached commit) to return to on `git bisect reset`. */
+  orig: string;
+  bad: string | null;
+  good: string[];
+  /** The first bad commit, once found. */
+  found?: string;
 }
 
 export interface World {
