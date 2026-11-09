@@ -3,7 +3,7 @@
 import { clsx } from "clsx";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useStore } from "zustand";
 import {
   ArrowLeft,
@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Circle,
+  ClipboardList,
   Eye,
   FlaskConical,
   Lightbulb,
@@ -36,6 +37,8 @@ import { useProgress } from "@/features/progress/store";
 import { useT, type MessageKey } from "@/i18n";
 import { Button } from "@/components/ui/button";
 import { ProgressBar, useHydrated } from "@/components/ui/misc";
+import { localizedDocs } from "@/features/docs/commands";
+import { CheatsheetDrawer } from "@/features/docs/cheatsheet";
 import { Celebration } from "./celebration";
 import { Scene } from "./scenes";
 
@@ -86,6 +89,8 @@ function LessonRuntime({ lesson }: { lesson: Lesson }) {
   const [step, setStep] = useState(() => Math.min(save?.step ?? 0, lesson.steps.length - 1));
   const [ran, setRan] = useState<string[]>([]);
   const [openedAt] = useState(() => Date.now());
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const closeSheet = useCallback(() => setSheetOpen(false), []);
   const recordCommand = useProgress((s) => s.recordCommand);
   const saveLesson = useProgress((s) => s.saveLesson);
   const clearLesson = useProgress((s) => s.clearLesson);
@@ -178,6 +183,9 @@ function LessonRuntime({ lesson }: { lesson: Lesson }) {
         <span className="hidden items-center gap-1 rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold text-warn sm:flex">
           <GitCommitHorizontal className="size-3.5" /> {lesson.xp} XP
         </span>
+        <Button variant="ghost" size="sm" onClick={() => setSheetOpen(true)} title={t("lesson.cheatsheet")} aria-haspopup="dialog">
+          <ClipboardList className="size-3.5" /> <span className="hidden sm:inline">{t("lesson.cheatsheet")}</span>
+        </Button>
         <Button variant="ghost" size="sm" onClick={restart} title={t("lesson.restartTitle")}>
           <RotateCcw className="size-3.5" /> <span className="hidden sm:inline">{t("lesson.restart")}</span>
         </Button>
@@ -242,6 +250,7 @@ function LessonRuntime({ lesson }: { lesson: Lesson }) {
           </AnimatePresence>
         </div>
       </div>
+      <CheatsheetDrawer open={sheetOpen} onClose={closeSheet} commands={lesson.commands} />
     </LabProvider>
   );
 }
@@ -371,10 +380,12 @@ function GuidePanel({
   const mode = useProgress((s) => s.settings.terminalMode);
   const current = lesson.steps[step];
   const [showCmd, setShowCmd] = useState(false);
+  const [hintLevel, setHintLevel] = useState(0);
   const [prevStep, setPrevStep] = useState(step);
   if (prevStep !== step) {
     setPrevStep(step);
     setShowCmd(false);
+    setHintLevel(0);
   }
 
   return (
@@ -386,6 +397,8 @@ function GuidePanel({
           done={current.check(world, start, ran)}
           showCmd={showCmd || mode === "assisted"}
           onReveal={() => setShowCmd(true)}
+          hintLevel={hintLevel}
+          onHint={() => setHintLevel(1)}
           onRun={() => current.command && run(current.command)}
           onAction={() => {
             if (!current.action) return;
@@ -434,17 +447,23 @@ function TryView({
   onAction,
   onNext,
   name,
+  hintLevel,
+  onHint,
 }: {
   name: string;
   step: TryStep;
   done: boolean;
   showCmd: boolean;
   onReveal: () => void;
+  hintLevel: number;
+  onHint: () => void;
   onRun: () => void;
   onAction: () => void;
   onNext: () => void;
 }) {
   const t = useT();
+  const hintNames = t.list("lesson.hintNames");
+  const idea = tryHint(step, t);
   return (
     <>
       <h2 className="mt-2 text-xl font-semibold tracking-tight">{step.title}</h2>
@@ -465,7 +484,22 @@ function TryView({
               <Eye className="size-4" /> {t("lesson.showCommand")}
             </button>
           )}
-          {step.hint && <p className="mt-2 text-xs text-fg-3">{step.hint}</p>}
+        </div>
+      )}
+      {!done && idea && (
+        <div className="mt-4">
+          {hintLevel > 0 && (
+            <motion.p initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="rounded-md border border-warn/25 bg-warn-soft p-3 text-sm text-fg">
+              <span className="mb-0.5 block text-[11px] font-semibold text-warn">{hintNames[0]}</span>
+              {idea}
+            </motion.p>
+          )}
+          {hintLevel === 0 && (
+            <button onClick={onHint} className="flex items-center gap-1.5 text-sm text-fg-2 hover:text-fg">
+              <Lightbulb className="size-4 text-warn" />
+              {t("lesson.needHint")}
+            </button>
+          )}
         </div>
       )}
       {step.action && !done && (
@@ -608,6 +642,16 @@ function ChallengeView({
       </div>
     </>
   );
+}
+
+/** The "idea" hint for a Try step: its own hint, else what its command does. */
+function tryHint(step: TryStep, t: ReturnType<typeof useT>): string | null {
+  if (step.hint) return step.hint;
+  const name = step.command?.match(/^git\s+([a-z-]+)/)?.[1];
+  const doc = name ? localizedDocs(t.locale).find((d) => d.name === name) : undefined;
+  if (doc) return t("lesson.hintCommand", { cmd: `git ${doc.name}`, what: doc.plain });
+  if (step.action) return t("lesson.hintAction", { label: step.action.label });
+  return null;
 }
 
 /** On phones the current objective stays visible above every tab. */

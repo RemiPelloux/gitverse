@@ -5,7 +5,7 @@ import { AnimatePresence, animate, motion, useMotionValue, useTransform } from "
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { BookText, Check, Flame, FlaskConical, Languages, Map as MapIcon, Moon, Sun, UserRound } from "lucide-react";
+import { BookText, Check, ClipboardList, Flame, FlaskConical, Languages, Map as MapIcon, Moon, Sun, UserRound } from "lucide-react";
 import { useProgress } from "@/features/progress/store";
 import { dayKey, levelFor, streak } from "@/features/progress/rules";
 import { LOCALES, useT, type Locale } from "@/i18n";
@@ -16,6 +16,7 @@ const LINKS = [
   { href: "/learn", key: "nav.learn", icon: MapIcon },
   { href: "/playground", key: "nav.playground", icon: FlaskConical },
   { href: "/commands", key: "nav.commands", icon: BookText },
+  { href: "/cheatsheet", key: "nav.cheatsheet", icon: ClipboardList },
   { href: "/profile", key: "nav.profile", icon: UserRound },
 ] as const;
 
@@ -36,12 +37,12 @@ export function AppNav() {
   const onboarded = useProgress((s) => s.onboarded);
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-line/70 bg-bg/90 backdrop-blur supports-[backdrop-filter]:bg-bg/75">
+      <header className="sticky top-0 z-40 print:hidden border-b border-line/70 bg-bg/90 backdrop-blur supports-[backdrop-filter]:bg-bg/75">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4">
           <Link href="/" aria-label={t("nav.home")}>
             <Logo />
           </Link>
-          <nav className="ml-4 hidden items-center gap-1 md:flex" aria-label={t("nav.main")}>
+          <nav className="ml-2 hidden items-center gap-0.5 md:flex lg:ml-4 lg:gap-1" aria-label={t("nav.main")}>
             {LINKS.map((l) => {
               const active = pathname.startsWith(l.href);
               return (
@@ -49,7 +50,7 @@ export function AppNav() {
                   key={l.href}
                   href={l.href}
                   aria-current={active ? "page" : undefined}
-                  className={clsx("rounded-lg px-3 py-1.5 text-sm font-medium transition-colors", active ? "bg-surface-2 text-fg" : "text-fg-2 hover:text-fg")}
+                  className={clsx("rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors lg:px-3", active ? "bg-surface-2 text-fg" : "text-fg-2 hover:text-fg")}
                 >
                   {t(l.key)}
                 </Link>
@@ -84,7 +85,7 @@ export function AppNav() {
               {hydrated && settings.theme === "light" ? <Moon className="size-4" /> : <Sun className="size-4" />}
             </button>
             {hydrated && onboarded && (
-              <Link href="/profile" className="hidden rounded-full ring-offset-2 ring-offset-bg hover:ring-2 hover:ring-line-strong md:block" aria-label={t("nav.profile")}>
+              <Link href="/profile" className="hidden rounded-full ring-offset-2 ring-offset-bg hover:ring-2 hover:ring-line-strong lg:block" aria-label={t("nav.profile")}>
                 <Avatar name={name} color={avatar} size="sm" />
               </Link>
             )}
@@ -92,7 +93,7 @@ export function AppNav() {
         </div>
       </header>
       {/* mobile bottom navigation */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:hidden" aria-label={t("nav.main")}>
+      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:hidden print:hidden" aria-label={t("nav.main")}>
         {LINKS.map((l) => {
           const active = pathname.startsWith(l.href);
           return (

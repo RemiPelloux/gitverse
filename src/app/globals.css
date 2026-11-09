@@ -258,3 +258,23 @@ select {
 .bob {
   animation: bob 1.6s ease-in-out infinite;
 }
+
+/* Printing / "Save as PDF" (the cheatsheet): ink on white paper, keep the accent colors. */
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+  html,
+  body {
+    background: #fff !important;
+  }
+  body {
+    zoom: 0.8;
+  }
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    box-shadow: none !important;
+  }
+}
