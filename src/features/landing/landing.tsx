@@ -38,7 +38,7 @@ export function Landing() {
       <AppNav />
       <main className="pb-24 md:pb-0">
         <section className="mx-auto grid max-w-6xl items-center gap-12 px-4 pt-14 pb-16 lg:grid-cols-2 lg:pt-20">
-          <div>
+          <div className="min-w-0">
             <p className="font-mono text-sm text-fg-3">{t("landing.prompt")}</p>
             <h1 className="mt-4 text-[2.5rem] leading-[1.08] font-semibold tracking-tight text-balance sm:text-[3.4rem]">
               {t("landing.title1")} <span className="text-accent-fg">{t("landing.titleAccent")}</span>
@@ -48,7 +48,7 @@ export function Landing() {
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-fg-2">
               {t("landing.lead")}
             </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <StartButton />
               <LinkButton href="/playground" variant="secondary" size="lg">
                 {t("landing.openPlayground")}

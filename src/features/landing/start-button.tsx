@@ -16,11 +16,12 @@ export function StartButton() {
   const onboarded = useProgress((s) => s.onboarded);
   const started = hydrated && Object.keys(completed).length > 0;
   const next = ALL_LESSONS.find((l) => !completed[l.id]) ?? ALL_LESSONS[0];
+  const label = started ? t("landing.continue", { title: localizeLesson(next, t.locale).title }) : t("landing.start");
   const href = !hydrated || !onboarded ? "/welcome" : `/learn/${(started ? next : ALL_LESSONS[0]).id}`;
   return (
-    <LinkButton href={href} size="lg" className="group">
-      {started ? t("landing.continue", { title: localizeLesson(next, t.locale).title }) : t("landing.start")}
-      <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+    <LinkButton href={href} size="lg" className="group min-w-0 max-w-full" title={label}>
+      <span className="min-w-0 truncate">{label}</span>
+      <ArrowRight className="size-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
     </LinkButton>
   );
 }
