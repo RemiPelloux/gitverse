@@ -24,6 +24,7 @@ import {
   matchPaths,
   mergeTrees,
   oneLine,
+  printTreeDiff,
   requireRepo,
   switchTrees,
 } from "./helpers";
@@ -357,7 +358,7 @@ function restorePaths(ctx: Ctx, repo: Repo, specs: string[], rev?: string) {
 
 // ---------------------------------------------------------------- merge
 
-export function gitMerge(ctx: Ctx, args: string[]) {
+export function gitMerge(ctx: Ctx, args: string[], opts: { pullFrom?: string } = {}) {
   const repo = requireRepo(ctx);
   if (args.includes("--abort")) {
     if (!repo.op || repo.op.kind !== "merge")
@@ -400,6 +401,7 @@ export function gitMerge(ctx: Ctx, args: string[]) {
     );
   const ours = headCommitId(repo);
   const into = currentBranch(repo);
+  if (ours) repo.origHead = ours;
   if (!ours) {
     switchTrees(ctx, repo, repo.commits[theirs].tree);
     moveHead(repo, theirs, `merge ${name}: Fast-forward`);
@@ -434,7 +436,16 @@ export function gitMerge(ctx: Ctx, args: string[]) {
       "Commit or stash your uncommitted work before merging, so Git can't overwrite it.",
     );
   ctx.out(result.messages, "muted");
-  const defaultMsg = `Merge ${repo.branches[name] ? "branch" : "commit"} '${name}'${into && into !== "main" && into !== "master" ? ` into ${into}` : ""}`;
+  const what = opts.pullFrom
+    ? opts.pullFrom
+    : repo.branches[name]
+      ? `branch '${name}'`
+      : repo.remoteRefs[name]
+        ? `remote-tracking branch '${name}'`
+        : repo.tags[name]
+          ? `tag '${name}'`
+          : `commit '${name}'`;
+  const defaultMsg = `Merge ${what}${into && into !== "main" && into !== "master" ? ` into ${into}` : ""}`;
   // apply result to index + workdir
   for (const p of Object.keys(oursTree)) if (!(p in result.work)) delete ctx.world.workdir[p];
   repo.index = { ...result.tree };
@@ -495,6 +506,7 @@ export function gitReset(ctx: Ctx, args: string[]) {
   }
   const target = resolveRev(repo, maybeRev ?? "HEAD")!;
   const tree = repo.commits[target].tree;
+  repo.origHead = head;
   if (mode === "hard") hardReset(ctx.world, repo, tree);
   else if (mode === "mixed") repo.index = { ...tree };
   moveHead(repo, target, `reset: moving to ${maybeRev ?? "HEAD"}`);
@@ -507,24 +519,29 @@ export function gitReset(ctx: Ctx, args: string[]) {
   ctx.emit({ type: "reset", mode, to: target });
 }
 
-function applyCommit(
-  ctx: Ctx,
-  repo: Repo,
-  kind: "revert" | "cherry-pick",
-  rev: string,
-) {
-  const id = resolveRev(repo, rev);
-  if (!id) fail(`fatal: bad revision '${rev}'`);
+/** Resolve every rev up front, like Git's sequencer does before applying anything. */
+function resolvePicks(repo: Repo, kind: "revert" | "cherry-pick", revs: string[]): string[] {
+  return revs.map((rev) => {
+    const id = resolveRev(repo, rev);
+    if (!id)
+      fail(
+        `fatal: bad revision '${rev}'`,
+        `There's no commit called "${rev}". Copy an id from git log --oneline (add --all to see other branches).`,
+      );
+    const c = repo.commits[id];
+    if (c.parents.length > 1)
+      fail(
+        `error: commit ${c.id} is a merge but no -m option was given.`,
+        `Git can't ${kind} a merge commit without being told which parent to compare against, and this simulator doesn't support -m yet. Pick the individual commits instead.`,
+      );
+    return id;
+  });
+}
+
+/** Apply one commit. Returns false when it stopped on a conflict (repo.op is set). */
+function applyCommit(ctx: Ctx, repo: Repo, kind: "revert" | "cherry-pick", id: string, todo: string[], origHead: string): boolean {
   const c = repo.commits[id];
-  const head = headCommitId(repo);
-  if (!head) fail("fatal: your current branch does not have any commits yet");
-  if (c.parents.length > 1)
-    fail(`error: commit ${shortId(id)} is a merge but no -m option was given.`, "Reverting or cherry-picking a merge commit needs extra options that this simulator doesn't support yet.");
-  if (dirtyTrackedPaths(ctx.world, repo).length)
-    fail(
-      [`error: your local changes would be overwritten by ${kind}.`, "hint: commit your changes or stash them to proceed."],
-      `Save or stash your current edits before running git ${kind}.`,
-    );
+  const head = headCommitId(repo)!;
   const parentTree = c.parents[0] ? repo.commits[c.parents[0]].tree : {};
   const headTreeNow = repo.commits[head].tree;
   const [base, theirs] = kind === "revert" ? [c.tree, parentTree] : [parentTree, c.tree];
@@ -536,43 +553,134 @@ function applyCommit(
   Object.assign(ctx.world.workdir, result.work);
   if (result.conflicts.length) {
     ctx.out(result.messages, "muted");
-    repo.op = { kind, theirs: id, theirsLabel: label, conflicts: result.conflicts, message, author: kind === "cherry-pick" ? c.author : undefined };
-    ctx.error([`error: could not ${kind} ${label}`, `hint: After resolving the conflicts, mark them with "git add <file>" and run "git commit".`]);
+    repo.op = {
+      kind,
+      theirs: id,
+      theirsLabel: label,
+      conflicts: result.conflicts,
+      message,
+      author: kind === "cherry-pick" ? c.author : undefined,
+      todo,
+      origHead,
+    };
+    ctx.error([
+      `error: could not ${kind === "revert" ? "revert" : "apply"} ${shortId(id)}... ${oneLine(c)}`,
+      "hint: After resolving the conflicts, mark them with",
+      'hint: "git add/rm <pathspec>", then run',
+      `hint: "git ${kind} --continue".`,
+      `hint: You can instead skip this commit with "git ${kind} --skip".`,
+      `hint: To abort and get back to the state before "git ${kind}",`,
+      `hint: run "git ${kind} --abort".`,
+    ]);
+    ctx.explain = `The commit changes lines that are also different on your branch, so Git can't apply it on its own. Open each conflicted file, keep the right content (remove the <<<<<<< ======= >>>>>>> markers), git add it, then run git ${kind} --continue. Or give up with git ${kind} --abort.`;
     ctx.emit({ type: "conflict", paths: result.conflicts });
-    return;
+    return false;
   }
   if (sameTree(result.tree, headTreeNow)) {
-    ctx.error(["The previous cherry-pick is now empty, possibly due to conflict resolution."], "These changes are already in your branch, so there is nothing new to apply.");
-    return;
+    if (!todo.length) {
+      // last (or only) commit: nothing to do, leave no operation behind
+      ctx.error([`The previous ${kind} is now empty, possibly due to conflict resolution.`], "These changes are already in your branch, so there is nothing new to apply.");
+      return false;
+    }
+    repo.op = { kind, theirs: id, theirsLabel: label, conflicts: [], message, author: kind === "cherry-pick" ? c.author : undefined, todo, origHead };
+    ctx.error(
+      [
+        `The previous ${kind} is now empty, possibly due to conflict resolution.`,
+        "If you wish to commit it anyway, use:",
+        "",
+        "    git commit --allow-empty",
+        "",
+        `Otherwise, please use 'git ${kind} --skip'`,
+      ],
+      `These changes are already in your branch, so there is nothing new to apply. Run git ${kind} --skip to move on (or --abort to cancel).`,
+    );
+    return false;
   }
   finishCommit(ctx, repo, message);
-  if (kind === "cherry-pick") {
-    const newId = headCommitId(repo)!;
-    repo.commits[newId].author = c.author;
+  if (kind === "cherry-pick") repo.commits[headCommitId(repo)!].author = c.author;
+  return true;
+}
+
+function runPicks(ctx: Ctx, repo: Repo, kind: "revert" | "cherry-pick", todo: string[], origHead: string) {
+  while (todo.length) {
+    const id = todo.shift()!;
+    if (!applyCommit(ctx, repo, kind, id, todo, origHead)) return;
   }
+}
+
+function sequencer(ctx: Ctx, args: string[], kind: "revert" | "cherry-pick") {
+  const repo = requireRepo(ctx);
+  if (args.includes("--abort")) return abortOp(ctx, repo, kind);
+  const cont = args.includes("--continue");
+  const skip = args.includes("--skip");
+  if (cont || skip) {
+    const op = repo.op;
+    if (!op || op.kind !== kind)
+      fail(
+        `error: no ${kind} in progress`,
+        `There's no ${kind} waiting to be finished. --continue and --skip only make sense after a ${kind} stopped on a conflict.`,
+      );
+    const todo = [...(op.todo ?? [])];
+    const origHead = op.origHead ?? headCommitId(repo)!;
+    if (skip) {
+      hardReset(ctx.world, repo, headTree(repo));
+      repo.op = null;
+    } else {
+      if (op.conflicts.length)
+        fail(
+          [
+            "error: Committing is not possible because you have unmerged files.",
+            "hint: Fix them up in the work tree, and then use 'git add/rm <file>'",
+            "hint: as appropriate to mark resolution and make a commit.",
+            "fatal: Exiting because of an unresolved conflict.",
+          ],
+          `Some files still have conflicts: ${op.conflicts.join(", ")}. Fix each one (remove the conflict markers), run git add <file>, then git ${kind} --continue.`,
+        );
+      if (sameTree(repo.index, headTree(repo))) {
+        // resolved to "nothing changed": Git calls this an empty commit
+        fail(
+          [`The previous ${kind} is now empty, possibly due to conflict resolution.`, "If you wish to commit it anyway, use:", "", "    git commit --allow-empty", "", `Otherwise, please use 'git ${kind} --skip'`],
+          `After your resolution, the files are exactly the same as before, so there's nothing to commit. Run git ${kind} --skip to move on.`,
+        );
+      }
+      // finishCommit keeps op.author (the original author of a cherry-picked commit)
+      finishCommit(ctx, repo, op.message);
+    }
+    runPicks(ctx, repo, kind, todo, origHead);
+    return;
+  }
+  if (repo.op)
+    fail(
+      [`error: ${repo.op.kind === kind ? `${kind} is already in progress` : `you are in the middle of a ${repo.op.kind}`}`, `hint: try "git ${repo.op.kind} (--continue | --abort)"`, `fatal: ${kind} failed`],
+      `Finish the ${repo.op.kind} that's in progress first (fix conflicts, git add, then --continue), or cancel it with git ${repo.op.kind} --abort.`,
+    );
+  const revs = args.filter((a) => !a.startsWith("-"));
+  if (!revs.length)
+    fail(
+      `usage: git ${kind} <commit>...`,
+      kind === "revert" ? "Name the commit to undo, e.g. git revert HEAD or git revert a1b2c3d." : "Name the commit to copy onto this branch, e.g. git cherry-pick a1b2c3d.",
+    );
+  const head = headCommitId(repo);
+  if (!head) fail("fatal: your current branch does not have any commits yet", `Make a first commit before running git ${kind}.`);
+  const todo = resolvePicks(repo, kind, revs);
+  if (dirtyTrackedPaths(ctx.world, repo).length)
+    fail(
+      [`error: your local changes would be overwritten by ${kind}.`, "hint: commit your changes or stash them to proceed.", `fatal: ${kind} failed`],
+      `Save or stash your current edits before running git ${kind}.`,
+    );
+  runPicks(ctx, repo, kind, todo, head);
 }
 
 export function gitRevert(ctx: Ctx, args: string[]) {
-  const repo = requireRepo(ctx);
-  if (args.includes("--abort")) return abortOp(ctx, repo, "revert");
-  const rev = args.find((a) => !a.startsWith("-"));
-  if (!rev) fail("usage: git revert <commit>", "Name the commit to undo, e.g. git revert HEAD or git revert a1b2c3d.");
-  applyCommit(ctx, repo, "revert", rev);
+  sequencer(ctx, args, "revert");
 }
 
 export function gitCherryPick(ctx: Ctx, args: string[]) {
-  const repo = requireRepo(ctx);
-  if (args.includes("--abort")) return abortOp(ctx, repo, "cherry-pick");
-  const revs = args.filter((a) => !a.startsWith("-"));
-  if (!revs.length) fail("usage: git cherry-pick <commit>...", "Name the commit to copy onto this branch, e.g. git cherry-pick a1b2c3d.");
-  for (const r of revs) {
-    applyCommit(ctx, repo, "cherry-pick", r);
-    if (repo.op) break;
-  }
+  sequencer(ctx, args, "cherry-pick");
 }
 
 function abortOp(ctx: Ctx, repo: Repo, kind: string) {
-  if (!repo.op || repo.op.kind !== kind) fail(`error: no ${kind} in progress`);
+  if (!repo.op || repo.op.kind !== kind) fail(`error: no ${kind} in progress`, `There's no ${kind} to cancel.`);
   if (repo.op.rebase) {
     const { origHead, branch } = repo.op.rebase;
     hardReset(ctx.world, repo, repo.commits[origHead].tree);
@@ -581,6 +689,11 @@ function abortOp(ctx: Ctx, repo: Repo, kind: string) {
       repo.head = { kind: "branch", name: branch };
     } else repo.head = { kind: "detached", commit: origHead };
     addReflog(repo, origHead, `rebase (abort): returning to ${branch ?? shortId(origHead)}`);
+  } else if (repo.op.origHead && repo.op.origHead !== headCommitId(repo)) {
+    // a multi-commit pick/revert: go back to where the whole sequence started
+    const to = repo.op.origHead;
+    hardReset(ctx.world, repo, repo.commits[to].tree);
+    moveHead(repo, to, `${kind} --abort`);
   } else hardReset(ctx.world, repo, headTree(repo));
   repo.op = null;
   ctx.out(`${kind} aborted.`, "muted");
@@ -634,6 +747,7 @@ export function gitRebase(ctx: Ctx, args: string[]) {
     .filter((c) => c.parents.length <= 1)
     .sort((a, b) => a.seq - b.seq)
     .map((c) => c.id);
+  repo.origHead = head;
   // detach at upstream
   switchTrees(ctx, repo, repo.commits[upstream].tree);
   repo.head = { kind: "detached", commit: upstream };
@@ -714,9 +828,45 @@ export function gitStash(ctx: Ctx, args: string[]) {
     repo.stash.forEach((s, i) => ctx.out(`stash@{${i}}: ${s.message}`));
     return;
   }
+  const flags = rest.filter((a) => a.startsWith("-"));
+  const refArg = rest.find((a) => !a.startsWith("-"));
+  /** Parse "stash@{n}" (or a bare "n") into an index into repo.stash. */
+  const stashIndex = (): number => {
+    if (refArg === undefined) {
+      if (!repo.stash.length) fail("No stash entries found.", "There's nothing in the stash. git stash saves your uncommitted changes there first.");
+      return 0;
+    }
+    const m = /^(?:stash@\{(\d+)\}|(\d+))$/.exec(refArg);
+    const n = m ? Number(m[1] ?? m[2]) : NaN;
+    if (!m || n >= repo.stash.length)
+      fail(
+        `error: ${m ? `stash@{${n}}` : refArg} is not a valid reference`,
+        repo.stash.length
+          ? `Pick one of the entries shown by git stash list: stash@{0} to stash@{${repo.stash.length - 1}}.`
+          : "The stash is empty, so there's nothing to refer to.",
+      );
+    return n;
+  };
+  const refLabel = (n: number) => (refArg === undefined ? "refs/stash@{0}" : `stash@{${n}}`);
+  /** The snapshot of tracked files the stash recorded (untracked -u files left out, like git stash show). */
+  const stashTree = (s: (typeof repo.stash)[number]) => {
+    const base = repo.commits[s.base].tree;
+    const tree: Record<string, string> = {};
+    for (const p of new Set([...Object.keys(base), ...Object.keys(s.index)])) if (p in s.workdir) tree[p] = s.workdir[p];
+    return tree;
+  };
+  if (sub === "show") {
+    const n = stashIndex();
+    const s = repo.stash[n];
+    const base = repo.commits[s.base].tree;
+    const patch = flags.includes("-p") || flags.includes("--patch") || flags.includes("-u");
+    if (patch) printTreeDiff(ctx, base, stashTree(s));
+    else ctx.out(diffStat(base, stashTree(s)));
+    return;
+  }
   if (sub === "pop" || sub === "apply" || sub === "drop") {
-    if (!repo.stash.length) fail("No stash entries found.");
-    const s = repo.stash[0];
+    const n = stashIndex();
+    const s = repo.stash[n];
     if (sub !== "drop") {
       const baseTree = repo.commits[s.base].tree;
       const current = { ...ctx.world.workdir };
@@ -735,10 +885,12 @@ export function gitStash(ctx: Ctx, args: string[]) {
           ["error: Your local changes to the following files would be overwritten by merge:", ...conflicts.map((p) => `\t${p}`), "Please commit your changes or stash them before you merge.", "Aborting"],
           "The stashed changes touch files you've edited since. Commit or discard those edits, then try again.",
         );
+      // like real Git (without --index): files that were newly added stay staged
+      for (const p of Object.keys(s.index)) if (!(p in baseTree) && !(p in repo.index) && p in s.workdir) repo.index[p] = s.index[p];
     }
     if (sub !== "apply") {
-      repo.stash.shift();
-      ctx.out(`Dropped refs/stash@{0} (${shortId(s.base)})`, "muted");
+      repo.stash.splice(n, 1);
+      ctx.out(`Dropped ${refLabel(n)} (${shortId(s.base)})`, "muted");
     }
     ctx.emit({ type: "stash", action: "pop" });
     return;

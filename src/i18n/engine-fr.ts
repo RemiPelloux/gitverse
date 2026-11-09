@@ -112,6 +112,142 @@ const EXACT: Record<string, string> = {
     "Tu ne peux pas encore faire de push, car tu n'as aucun commit. Fais d'abord un commit.",
   "That repository doesn't exist on the simulated GitHub. Double-check the URL.":
     "Ce dépôt n'existe pas sur le GitHub simulé. Vérifie bien l'URL.",
+
+  // builtins.ts (grep, test, npm)
+  "Supported grep options here: -q -i -n -r -l -v -c -E -e.":
+    "Options de grep disponibles ici : -q -i -n -r -l -v -c -E -e.",
+  "Supported grep options here: -q -i -n -r -l -v -c -E -w -F.":
+    "Options de grep disponibles ici : -q -i -n -r -l -v -c -E -w -F.",
+  'grep needs a pattern to search for, then the files to look in. Example: grep "TODO" app.js':
+    'grep a besoin d\'un motif à chercher, puis des fichiers où chercher. Exemple : grep "TODO" app.js',
+  'Tell grep which files to search, e.g. grep "TODO" app.js, or search the whole project with grep -r "TODO" .':
+    'Indique à grep dans quels fichiers chercher, par ex. grep "TODO" app.js, ou cherche dans tout le projet avec grep -r "TODO" .',
+  "The search pattern isn't a valid regular expression. Check unbalanced brackets or parentheses.":
+    "Le motif de recherche n'est pas une expression régulière valide. Vérifie les crochets ou parenthèses mal fermés.",
+  "Supported here: -f -e -d -s -n -z, = != and -eq -ne -lt -le -gt -ge.":
+    "Disponible ici : -f -e -d -s -n -z, = != et -eq -ne -lt -le -gt -ge.",
+  'Wrap values that contain spaces in quotes, e.g. test "$a" = "hello world".':
+    'Mets entre guillemets les valeurs qui contiennent des espaces, par ex. test "$a" = "hello world".',
+  "The [ command needs a closing ] with a space before it: [ -f README.md ]":
+    "La commande [ a besoin d'un ] fermant, précédé d'une espace : [ -f README.md ]",
+  "In this sandbox npm can run the scripts from package.json: npm test, npm start or npm run <name>.":
+    "Dans ce bac à sable, npm peut lancer les scripts de package.json : npm test, npm start ou npm run <name>.",
+  "npm reads its scripts from package.json, and this project doesn't have one.":
+    "npm lit ses scripts dans package.json, et ce projet n'en a pas.",
+  "package.json isn't valid JSON (check commas and quotes), so npm can't read it.":
+    "package.json n'est pas du JSON valide (vérifie les virgules et les guillemets), donc npm ne peut pas le lire.",
+  "An npm script keeps running npm again; check package.json for a loop.":
+    "Un script npm relance npm sans fin ; cherche une boucle dans package.json.",
+
+  // config.ts
+  "Supported here: git config <key> [<value>], --list, --unset <key>, --get <key>, --global.":
+    "Disponible ici : git config <key> [<value>], --list, --unset <key>, --get <key>, --global.",
+  'Give a setting name, and a value to change it. Example: git config user.name "Ada Lovelace". Use git config --list to see everything.':
+    'Donne le nom d\'un réglage, et une valeur pour le modifier. Exemple : git config user.name "Ada Lovelace". Utilise git config --list pour tout voir.',
+  "Config keys look like section.name, for example core.hooksPath.":
+    "Les clés de config ont la forme section.nom, par exemple core.hooksPath.",
+  "This setting is stored inside a repository's .git/config, and there's no repository here yet. Run git init first, then set it.":
+    "Ce réglage est stocké dans le fichier .git/config d'un dépôt, et il n'y a pas encore de dépôt ici. Lance d'abord git init, puis règle-le.",
+
+  // gh.ts
+  "gh works on the repository in the current folder, and this folder isn't a Git repository yet. Clone one or run git init first.":
+    "gh travaille sur le dépôt du dossier courant, et ce dossier n'est pas encore un dépôt Git. Clone un dépôt ou lance d'abord git init.",
+  "gh needs to know which GitHub repository you mean. Connect one with git remote add origin <url>, then push.":
+    "gh doit savoir de quel dépôt GitHub tu parles. Connectes-en un avec git remote add origin <url>, puis fais un push.",
+  "That remote doesn't point at a repository on the simulated GitHub.":
+    "Ce dépôt distant ne pointe vers aucun dépôt du GitHub simulé.",
+  "There's no pull request for the branch you're on. Give a number (gh pr view 3) or list them with gh pr list.":
+    "Il n'y a aucune pull request pour la branche sur laquelle tu es. Donne un numéro (gh pr view 3) ou liste-les avec gh pr list.",
+  "No pull request has that number. Run gh pr list --state all to see them.":
+    "Aucune pull request ne porte ce numéro. Lance gh pr list --state all pour les voir.",
+  "Tell gh which issue, e.g. gh issue view 2.":
+    "Indique à gh quelle issue, par ex. gh issue view 2.",
+  "No issue has that number. Run gh issue list --state all.":
+    "Aucune issue ne porte ce numéro. Lance gh issue list --state all.",
+  "Switch to the branch you want to propose, e.g. git switch my-feature.":
+    "Passe sur la branche que tu veux proposer, par ex. git switch my-feature.",
+  "A pull request proposes merging one branch into another. Create a branch for your change first: git switch -c my-change, commit, push it, then run gh pr create.":
+    "Une pull request propose de fusionner une branche dans une autre. Crée d'abord une branche pour ton changement : git switch -c my-change, fais un commit, pousse-la, puis lance gh pr create.",
+  'Give your pull request a title: gh pr create --title "Add login page" --body "What and why". Or use --fill to reuse your last commit message.':
+    'Donne un titre à ta pull request : gh pr create --title "Add login page" --body "What and why". Ou utilise --fill pour reprendre le message de ton dernier commit.',
+  "Tell gh which pull request to check out, e.g. gh pr checkout 3.":
+    "Indique à gh quelle pull request récupérer, par ex. gh pr checkout 3.",
+  'Pick one: gh pr review 3 --approve, gh pr review 3 --request-changes -b "Please rename x", or gh pr review 3 --comment -b "Nice!".':
+    'Choisis-en un : gh pr review 3 --approve, gh pr review 3 --request-changes -b "Please rename x", ou gh pr review 3 --comment -b "Nice!".',
+  'Explain what you think with -b "...". A review without words isn\'t much help.':
+    'Explique ce que tu en penses avec -b "...". Une review sans un mot n\'aide pas beaucoup.',
+  "On GitHub you can't approve or block your own pull request: reviews exist so that someone else checks your work. You can still --comment.":
+    "Sur GitHub, tu ne peux pas approuver ni bloquer ta propre pull request : les reviews servent à ce que quelqu'un d'autre vérifie ton travail. Tu peux quand même utiliser --comment.",
+  "Choose how GitHub combines the branch: --merge (keeps every commit plus a merge commit), --squash (one single commit) or --rebase (replays the commits on top, no merge commit).":
+    "Choisis comment GitHub intègre la branche : --merge (garde chaque commit plus un commit de fusion), --squash (un seul commit) ou --rebase (rejoue les commits par-dessus, sans commit de fusion).",
+  "It's already merged. Run git pull on the base branch to get the result locally.":
+    "Elle est déjà fusionnée. Lance git pull sur la branche de base pour récupérer le résultat en local.",
+  "Replaying these commits one by one on top of the base causes a conflict. Use --merge or --squash, or rebase locally and force-push the branch.":
+    "Rejouer ces commits un par un sur la base provoque un conflit. Utilise --merge ou --squash, ou fais un rebase en local et un force-push de la branche.",
+  'Describe the problem: gh issue create --title "Login button is broken" --body "Steps to reproduce..."':
+    'Décris le problème : gh issue create --title "Login button is broken" --body "Steps to reproduce..."',
+  "Name the version to release, e.g. gh release create v1.0.0 (the tag must be pushed first).":
+    "Indique la version à publier, par ex. gh release create v1.0.0 (le tag doit d'abord être poussé).",
+  "No release with that tag. Run gh release list.":
+    "Aucune release n'a ce tag. Lance gh release list.",
+  "No workflow has run yet. Add a workflow file under .github/workflows/ and push.":
+    "Aucun workflow n'a encore tourné. Ajoute un fichier de workflow dans .github/workflows/ et fais un push.",
+  "Run gh run list to see the run IDs.":
+    "Lance gh run list pour voir les identifiants des exécutions.",
+  'Usage: gh secret set NAME --body "value"':
+    'Utilisation : gh secret set NAME --body "value"',
+  "Use a name like API_TOKEN.":
+    "Utilise un nom comme API_TOKEN.",
+  "There's no secret with that name. Run gh secret list.":
+    "Il n'y a aucun secret de ce nom. Lance gh secret list.",
+  "gh talks to GitHub: pull requests (gh pr), issues, releases, Actions runs (gh run) and secrets. Type gh help.":
+    "gh parle à GitHub : pull requests (gh pr), issues, releases, exécutions Actions (gh run) et secrets. Tape gh help.",
+
+  // git/advanced.ts (bisect, check-ignore)
+  "Bisect is a guided search for the commit that introduced a bug. Start it with git bisect start, then mark a commit where the bug exists (git bisect bad) and one where it didn't yet (git bisect good <commit>).":
+    "Bisect est une recherche guidée du commit qui a introduit un bug. Démarre-la avec git bisect start, puis marque un commit où le bug existe (git bisect bad) et un où il n'existait pas encore (git bisect good <commit>).",
+  "You marked the same commit as both good and bad. Each commit either has the bug or doesn't.":
+    "Tu as marqué le même commit à la fois comme good et bad. Chaque commit a le bug, ou ne l'a pas.",
+  "A 'good' commit must be older than the 'bad' one (an ancestor of it). Check that you didn't swap them: bad = has the bug (usually the newest), good = an older commit without it.":
+    "Un commit 'good' doit être plus ancien que le 'bad' (un de ses ancêtres). Vérifie que tu ne les as pas inversés : bad = a le bug (en général le plus récent), good = un commit plus ancien sans le bug.",
+  "Every commit left to check was skipped, so Git can't narrow it down further. The culprit is one of the commits listed.":
+    "Tous les commits restant à vérifier ont été sautés (skip), donc Git ne peut pas affiner davantage. Le coupable est l'un des commits listés.",
+  "Give the command that tests a commit, e.g. git bisect run npm test. Exit status 0 means good, anything else means bad.":
+    "Donne la commande qui teste un commit, par ex. git bisect run npm test. Un code de sortie 0 signifie good, tout le reste signifie bad.",
+  "git bisect run needs a starting range: mark one commit with the bug (git bisect bad) and one without it (git bisect good <commit>) first.":
+    "git bisect run a besoin d'un intervalle de départ : marque d'abord un commit avec le bug (git bisect bad) et un sans (git bisect good <commit>).",
+  "There are no commits yet, so there is no history to search. Make some commits first.":
+    "Il n'y a encore aucun commit, donc aucun historique où chercher. Fais d'abord quelques commits.",
+  "git bisect works in steps: start, then mark commits good or bad until Git finds the culprit, then reset.":
+    "git bisect fonctionne par étapes : start, puis marque des commits good ou bad jusqu'à ce que Git trouve le coupable, puis reset.",
+  "Name the file to check, e.g. git check-ignore -v debug.log. Git tells you which .gitignore line ignores it.":
+    "Indique le fichier à vérifier, par ex. git check-ignore -v debug.log. Git te dit quelle ligne du .gitignore l'ignore.",
+
+  // git/basic.ts (status, add, tag)
+  "Use -uall (list every file), -unormal (the default: folders shown once) or -uno (hide untracked files).":
+    "Utilise -uall (liste chaque fichier), -unormal (par défaut : chaque dossier affiché une seule fois) ou -uno (masque les fichiers non suivis).",
+  "Your .gitignore says Git should not track these files (things like secrets, logs or build output usually shouldn't be committed). Git refused to stage them. If you really want this file in the repository, use git add -f <file>.":
+    "Ton .gitignore indique que Git ne doit pas suivre ces fichiers (les secrets, les logs ou les fichiers de build ne devraient en général pas être commités). Git a refusé de les ajouter. Si tu veux vraiment ce fichier dans le dépôt, utilise git add -f <file>.",
+  'Put the tag message right after -m, in quotes: git tag -a v1.0 -m "Release 1.0"':
+    'Mets le message du tag juste après -m, entre guillemets : git tag -a v1.0 -m "Release 1.0"',
+  'Common git tag options: -a (annotated) with -m "message", -l to list, -d to delete, -n to show messages.':
+    'Options courantes de git tag : -a (annoté) avec -m "message", -l pour lister, -d pour supprimer, -n pour afficher les messages.',
+  '-l only lists tags. To create an annotated tag, drop -l: git tag -a v1.0 -m "Release 1.0"':
+    '-l ne fait que lister les tags. Pour créer un tag annoté, retire -l : git tag -a v1.0 -m "Release 1.0"',
+  "Name the tag to delete, e.g. git tag -d v1.0. Run git tag to list them.":
+    "Indique le tag à supprimer, par ex. git tag -d v1.0. Lance git tag pour les lister.",
+  "There's no tag with that name. Run git tag to see the existing tags.":
+    "Il n'y a aucun tag de ce nom. Lance git tag pour voir les tags existants.",
+  'Give the tag a name, e.g. git tag -a v1.0 -m "Release 1.0".':
+    'Donne un nom au tag, par ex. git tag -a v1.0 -m "Release 1.0".',
+  "Tag names look like v1.0.0: letters, numbers, dots, dashes and slashes, no spaces.":
+    "Un nom de tag ressemble à v1.0.0 : lettres, chiffres, points, tirets et barres obliques, sans espaces.",
+
+  // git/branching.ts (stash)
+  "There's nothing in the stash. git stash saves your uncommitted changes there first.":
+    "Le stash est vide. git stash y range d'abord tes modifications non commitées.",
+  "The stash is empty, so there's nothing to refer to.":
+    "Le stash est vide, il n'y a donc rien à désigner.",
 };
 
 type Rule = [RegExp, (m: RegExpMatchArray) => string];
@@ -187,6 +323,177 @@ const PATTERNS: Rule[] = [
     /^Git doesn't know which GitHub branch to pull from\. Use git pull origin (.+)\.$/,
     (m) => `Git ne sait pas depuis quelle branche GitHub faire le pull. Utilise git pull origin ${m[1]}.`,
   ],
+
+  // builtins.ts
+  [
+    /^package\.json has no "(.*)" entry under "scripts", so npm doesn't know what to run\.$/,
+    (m) => `package.json n'a pas d'entrée "${m[1]}" dans "scripts", donc npm ne sait pas quoi lancer.`,
+  ],
+  [
+    /^The "(.*)" script failed \(see its output above\)\. npm passes the failure on, so anything waiting for it \(a hook, CI\) fails too\.$/,
+    (m) => `Le script "${m[1]}" a échoué (regarde sa sortie au-dessus). npm transmet l'échec, donc tout ce qui l'attend (un hook, la CI) échoue aussi.`,
+  ],
+
+  // config.ts
+  [
+    /^Config keys look like section\.name, for example user\.name or core\.hooksPath\. "(.*)" is missing the section part\.$/,
+    (m) => `Les clés de config ont la forme section.nom, par exemple user.name ou core.hooksPath. Il manque la partie section à "${m[1]}".`,
+  ],
+
+  // hooks.ts
+  [
+    /^The (\S+) hook \(a script in your project, set up with core\.hooksPath\) checked your work and said no, so Git stopped before (.+)\. Read its message above, fix the problem, and try again\. You could skip hooks with --no-verify, but that's usually a bad idea: the hook exists to catch mistakes before they reach your history or your team\.$/,
+    (m) => {
+      const actions: Record<string, string> = {
+        pushing: "de faire le push",
+        "creating the commit (nothing was committed)": "de créer le commit (rien n'a été commité)",
+        "creating the commit, because of the commit message (nothing was committed)": "de créer le commit, à cause du message de commit (rien n'a été commité)",
+      };
+      return `Le hook ${m[1]} (un script de ton projet, configuré avec core.hooksPath) a vérifié ton travail et a dit non, alors Git s'est arrêté avant ${actions[m[2]] ?? m[2]}. Lis son message au-dessus, corrige le problème et réessaie. Tu pourrais sauter les hooks avec --no-verify, mais c'est en général une mauvaise idée : le hook est là pour attraper les erreurs avant qu'elles n'arrivent dans ton historique ou chez ton équipe.`;
+    },
+  ],
+
+  // gh.ts
+  [/^(\S+) expects a value, e\.g\. \1 "something"\.$/, (m) => `${m[1]} attend une valeur, par ex. ${m[1]} "something".`],
+  [
+    /^gh (.+) doesn't understand (\S+)\. Run gh help to see what's supported here\.$/,
+    (m) => `gh ${m[1]} ne comprend pas ${m[2]}. Lance gh help pour voir ce qui est disponible ici.`,
+  ],
+  [
+    /^Pull requests and issues share numbers on GitHub\. Use gh pr view (.+)\.$/,
+    (m) => `Sur GitHub, les pull requests et les issues partagent la même numérotation. Utilise gh pr view ${m[1]}.`,
+  ],
+  [
+    /^(.+) asked for changes\. Make them on the (.+) branch, commit, and git push: the pull request updates itself and the reviewer looks again\.$/,
+    (m) => `${m[1].replace(/ and /g, " et ")} a demandé des changements. Fais-les sur la branche ${m[2]}, commite, puis git push : la pull request se met à jour toute seule et la personne qui relit regarde à nouveau.`,
+  ],
+  [
+    /^The (.+) branch is protected: a pull request needs (.+) from someone other than its author before it can be merged\.$/,
+    (m) => {
+      const n = /^(\d+) approving reviews?$/.exec(m[2]);
+      const what = n ? (n[1] === "1" ? "1 approbation" : `${n[1]} approbations`) : m[2];
+      return `La branche ${m[1]} est protégée : une pull request a besoin de ${what} de quelqu'un d'autre que son auteur avant de pouvoir être fusionnée.`;
+    },
+  ],
+  [
+    /^The "(.*)" check \(a GitHub Actions job\) failed on the latest commit\. Read why with gh run list and gh run view <id> --log, fix it on (.+), and push\.$/,
+    (m) => `Le check "${m[1]}" (un job GitHub Actions) a échoué sur le dernier commit. Regarde pourquoi avec gh run list et gh run view <id> --log, corrige-le sur ${m[2]}, puis fais un push.`,
+  ],
+  [
+    /^The "(.*)" check must pass before merging, but it hasn't run on the latest commit\. Make sure a workflow in \.github\/workflows has a job named (.+) that runs on pull_request\.$/,
+    (m) => `Le check "${m[1]}" doit réussir avant la fusion, mais il n'a pas tourné sur le dernier commit. Vérifie qu'un workflow dans .github/workflows a un job nommé ${m[2]} qui se lance sur pull_request.`,
+  ],
+  [
+    /^(.+) changed the same lines as your branch since you started\. Locally: git switch (.+), git pull, git merge origin\/(.+), fix the conflicts, commit, then git push\. The pull request updates itself\.$/,
+    (m) => `${m[1]} a modifié les mêmes lignes que ta branche depuis que tu as commencé. En local : git switch ${m[2]}, git pull, git merge origin/${m[3]}, règle les conflits, commite, puis git push. La pull request se met à jour toute seule.`,
+  ],
+  [
+    /^GitHub doesn't have the branch "(.*)" yet, so there's nothing to open a pull request from\. Push it first: git push -u origin (.+)$/,
+    (m) => `GitHub n'a pas encore la branche "${m[1]}", il n'y a donc rien à partir de quoi ouvrir une pull request. Pousse-la d'abord : git push -u origin ${m[2]}`,
+  ],
+  [/^There's no branch called "(.*)" on GitHub\.$/, (m) => `Il n'y a aucune branche nommée "${m[1]}" sur GitHub.`],
+  [
+    /^(.+) has nothing that (.+) doesn't already have\. Commit your change on \1 and push it before opening the pull request\.$/,
+    (m) => `${m[1]} ne contient rien que ${m[2]} n'ait déjà. Commite ton changement sur ${m[1]} et pousse-le avant d'ouvrir la pull request.`,
+  ],
+  [
+    /^There's already an open pull request for (.+)\. New pushes to \1 update it automatically; no need for a new one\.$/,
+    (m) => `Il y a déjà une pull request ouverte pour ${m[1]}. Les nouveaux push sur ${m[1]} la mettent à jour automatiquement ; pas besoin d'en créer une autre.`,
+  ],
+  [
+    /^The branch behind #(.+) was deleted on GitHub, so there's nothing to check out\.$/,
+    (m) => `La branche de la #${m[1]} a été supprimée sur GitHub, il n'y a donc rien à récupérer.`,
+  ],
+  [/^Reopen it first with gh pr reopen (.+)\.$/, (m) => `Rouvre-la d'abord avec gh pr reopen ${m[1]}.`],
+  [
+    /^Your tag only exists on your computer\. Publish it first: git push origin (.+), then create the release\.$/,
+    (m) => `Ton tag n'existe que sur ton ordinateur. Publie-le d'abord : git push origin ${m[1]}, puis crée la release.`,
+  ],
+  [
+    /^A release is attached to a tag\. Create and publish one first: git tag (.+) && git push origin \1$/,
+    (m) => `Une release est rattachée à un tag. Crée-en un et publie-le d'abord : git tag ${m[1]} && git push origin ${m[1]}`,
+  ],
+  [
+    /^Give the value with --body: gh secret set (.+) --body "s3cr3t"\. It's stored encrypted and never shown again\.$/,
+    (m) => `Donne la valeur avec --body : gh secret set ${m[1]} --body "s3cr3t". Elle est stockée chiffrée et ne sera plus jamais affichée.`,
+  ],
+  [
+    /^gh (\S+) needs a subcommand, for example gh \1 (\S+)\.$/,
+    (m) => `gh ${m[1]} a besoin d'une sous-commande, par exemple gh ${m[1]} ${m[2]}.`,
+  ],
+  [/^Typo\? Try gh (.+)\.$/, (m) => `Faute de frappe ? Essaie gh ${m[1]}.`],
+  [/^gh (\S+) supports: (.+)\.$/, (m) => `gh ${m[1]} accepte : ${m[2]}.`],
+
+  // git/advanced.ts
+  [
+    /^Git can't find a commit called "(.*)"\. Use a commit id from git log --oneline, a branch, a tag, or HEAD~N\.$/,
+    (m) => `Git ne trouve aucun commit nommé "${m[1]}". Utilise un identifiant de commit tiré de git log --oneline, une branche, un tag ou HEAD~N.`,
+  ],
+  [/^Finish or abort the (.+) before starting a bisect\.$/, (m) => `Termine ou annule le ${m[1]} avant de lancer un bisect.`],
+
+  // git/basic.ts (tag)
+  [
+    /^There's no commit called "(.*)"\. Use a branch name, tag or commit id from git log --oneline\.$/,
+    (m) => `Il n'y a aucun commit nommé "${m[1]}". Utilise un nom de branche, un tag ou un identifiant de commit tiré de git log --oneline.`,
+  ],
+  [
+    /^A tag called (.+) already exists, and tags aren't supposed to move\. Pick a new name, or delete it first with git tag -d \1\.$/,
+    (m) => `Un tag nommé ${m[1]} existe déjà, et un tag n'est pas censé bouger. Choisis un autre nom, ou supprime-le d'abord avec git tag -d ${m[1]}.`,
+  ],
+  [
+    /^An annotated tag needs a message\. Real Git would open a text editor; here, give it with -m: (.+)$/,
+    (m) => `Un tag annoté a besoin d'un message. Le vrai Git ouvrirait un éditeur de texte ; ici, donne-le avec -m : ${m[1]}`,
+  ],
+
+  // git/branching.ts (cherry-pick, revert, stash)
+  [
+    /^There's no commit called "(.*)"\. Copy an id from git log --oneline \(add --all to see other branches\)\.$/,
+    (m) => `Il n'y a aucun commit nommé "${m[1]}". Copie un identifiant depuis git log --oneline (ajoute --all pour voir les autres branches).`,
+  ],
+  [
+    /^Git can't (\S+) a merge commit without being told which parent to compare against, and this simulator doesn't support -m yet\. Pick the individual commits instead\.$/,
+    (m) => `Git ne peut pas faire de ${m[1]} sur un commit de fusion sans savoir à quel parent le comparer, et ce simulateur ne gère pas encore -m. Choisis plutôt les commits un par un.`,
+  ],
+  [
+    /^The commit changes lines that are also different on your branch, so Git can't apply it on its own\. Open each conflicted file, keep the right content \(remove the <<<<<<< ======= >>>>>>> markers\), git add it, then run git (\S+) --continue\. Or give up with git \1 --abort\.$/,
+    (m) => `Ce commit modifie des lignes qui sont aussi différentes sur ta branche, donc Git ne peut pas l'appliquer tout seul. Ouvre chaque fichier en conflit, garde le bon contenu (supprime les marqueurs <<<<<<< ======= >>>>>>>), fais git add, puis lance git ${m[1]} --continue. Ou abandonne avec git ${m[1]} --abort.`,
+  ],
+  [
+    /^These changes are already in your branch, so there is nothing new to apply\. Run git (\S+) --skip to move on \(or --abort to cancel\)\.$/,
+    (m) => `Ces changements sont déjà dans ta branche, il n'y a donc rien de nouveau à appliquer. Lance git ${m[1]} --skip pour passer à la suite (ou --abort pour annuler).`,
+  ],
+  [
+    /^There's no (\S+) waiting to be finished\. --continue and --skip only make sense after a \1 stopped on a conflict\.$/,
+    (m) => `Il n'y a aucun ${m[1]} en attente. --continue et --skip n'ont de sens qu'après un ${m[1]} arrêté sur un conflit.`,
+  ],
+  [
+    /^Some files still have conflicts: (.+)\. Fix each one \(remove the conflict markers\), run git add <file>, then git (\S+) --continue\.$/,
+    (m) => `Certains fichiers ont encore des conflits : ${m[1]}. Corrige-les un par un (supprime les marqueurs de conflit), lance git add <file>, puis git ${m[2]} --continue.`,
+  ],
+  [
+    /^After your resolution, the files are exactly the same as before, so there's nothing to commit\. Run git (\S+) --skip to move on\.$/,
+    (m) => `Après ta résolution, les fichiers sont exactement les mêmes qu'avant, il n'y a donc rien à commiter. Lance git ${m[1]} --skip pour passer à la suite.`,
+  ],
+  [
+    /^Finish the (\S+) that's in progress first \(fix conflicts, git add, then --continue\), or cancel it with git \1 --abort\.$/,
+    (m) => `Termine d'abord le ${m[1]} en cours (règle les conflits, git add, puis --continue), ou annule-le avec git ${m[1]} --abort.`,
+  ],
+  [/^Make a first commit before running git (\S+)\.$/, (m) => `Fais un premier commit avant de lancer git ${m[1]}.`],
+  [/^There's no (\S+) to cancel\.$/, (m) => `Il n'y a aucun ${m[1]} à annuler.`],
+  [
+    /^Pick one of the entries shown by git stash list: stash@\{0\} to stash@\{(.+)\}\.$/,
+    (m) => `Choisis une des entrées affichées par git stash list : de stash@{0} à stash@{${m[1]}}.`,
+  ],
+
+  // git/remote.ts (GH006)
+  [
+    /^(.+) is a protected branch on GitHub, so it can't be deleted\. Protection keeps important branches like \1 safe from accidents\.$/,
+    (m) => `${m[1]} est une branche protégée sur GitHub, elle ne peut donc pas être supprimée. La protection met les branches importantes comme ${m[1]} à l'abri des accidents.`,
+  ],
+  [
+    /^(.+) is a protected branch on GitHub: nobody may push to it directly, every change has to arrive through a pull request\. Move your commit to a new branch \(git switch -c my-change\), push that branch \(git push -u origin my-change\) and open a pull request with gh pr create\. Then reset your local \1 to origin\/\1\.$/,
+    (m) => `${m[1]} est une branche protégée sur GitHub : personne ne peut y faire de push directement, chaque changement doit passer par une pull request. Déplace ton commit sur une nouvelle branche (git switch -c my-change), pousse cette branche (git push -u origin my-change) et ouvre une pull request avec gh pr create. Ensuite, remets ta branche ${m[1]} locale sur origin/${m[1]}.`,
+  ],
 ];
 
 export function translateExplain(text: string | undefined, locale: Locale): string | undefined {
@@ -197,5 +504,7 @@ export function translateExplain(text: string | undefined, locale: Locale): stri
     const m = text.match(re);
     if (m) return fn(m);
   }
+  // several explanations joined line by line (e.g. every reason a PR can't be merged)
+  if (text.includes("\n")) return text.split("\n").map((l) => translateExplain(l, locale) ?? l).join("\n");
   return text;
 }

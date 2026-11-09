@@ -41,6 +41,10 @@ export interface OpState {
   conflicts: string[];
   message: string;
   author?: string;
+  /** cherry-pick / revert: commits still to apply after this one (sequencer). */
+  todo?: string[];
+  /** cherry-pick / revert: HEAD before the sequence started (for --abort). */
+  origHead?: string;
   rebase?: {
     branch: string | null;
     upstream: string;
@@ -48,6 +52,14 @@ export interface OpState {
     todo: string[];
     rewritten: Array<[string, string]>;
   };
+}
+
+/** Extra data stored by an annotated tag (`git tag -a` / `git tag -m`). */
+export interface TagMeta {
+  message: string;
+  /** "Name <email>" */
+  tagger: string;
+  time: number;
 }
 
 export interface StashEntry {
@@ -125,6 +137,8 @@ export interface HostedRepo {
   defaultBranch: string;
   /** Tags published with `git push --tags` / `git push origin <tag>`. */
   tags?: Record<string, string>;
+  /** Annotated tag data, keyed by tag name (lightweight tags have no entry). */
+  tagMeta?: Record<string, TagMeta>;
   pulls?: PullRequest[];
   issues?: Issue[];
   releases?: Release[];
@@ -146,6 +160,10 @@ export interface Repo {
   /** Order in which branches were created (stable lane assignment). */
   branchOrder: string[];
   tags: Record<string, string>;
+  /** Annotated tag data, keyed by tag name (lightweight tags have no entry). */
+  tagMeta?: Record<string, TagMeta>;
+  /** Commit HEAD pointed to before the last reset / merge / rebase / pull (ORIG_HEAD). */
+  origHead?: string;
   head: Head;
   /** The staging area: the snapshot the next commit will record. */
   index: FileMap;

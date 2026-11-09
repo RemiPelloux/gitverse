@@ -224,6 +224,9 @@ export function gitPush(ctx: Ctx, args: string[]) {
       objects += transfer(repo.commits, ctx.world.hostedCommits, id);
       lines.push({ text: ` * [new tag]         ${srcName} -> ${dst}`, kind: "success" });
       host.tags[dst] = id;
+      const meta = repo.tagMeta?.[srcName];
+      if (meta) (host.tagMeta ??= {})[dst] = { ...meta };
+      else if (host.tagMeta) delete host.tagMeta[dst];
       return;
     }
     const src = srcName === "HEAD" ? headCommitId(repo) : repo.branches[srcName];
@@ -261,6 +264,7 @@ export function gitPush(ctx: Ctx, args: string[]) {
   const deleteRef = (dst: string) => {
     if (host.tags?.[dst] && !host.branches[dst]) {
       delete host.tags[dst];
+      if (host.tagMeta) delete host.tagMeta[dst];
       lines.push({ text: ` - [deleted]         ${dst}`, kind: "success" });
       return;
     }
@@ -337,6 +341,8 @@ function fetchRemote(ctx: Ctx, repo: Repo, remoteName: string, prune = false): s
     if (repo.tags[t]) continue;
     transfer(ctx.world.hostedCommits, repo.commits, id);
     repo.tags[t] = id;
+    const meta = host.tagMeta?.[t];
+    if (meta) (repo.tagMeta ??= {})[t] = { ...meta };
     lines.push(` * [new tag]         ${t.padEnd(10)} -> ${t}`);
   }
   if (lines.length) {
@@ -395,7 +401,11 @@ export function gitPull(ctx: Ctx, args: string[]) {
   const ref = `${remoteName}/${remoteBranch ?? branch}`;
   if (!repo.remoteRefs[ref]) fail(`fatal: couldn't find remote ref ${remoteBranch ?? branch}`);
   if (rebase) gitRebase(ctx, [ref]);
-  else gitMerge(ctx, [ref]);
+  else {
+    // like real Git: "Merge branch 'main' of https://github.com/you/project"
+    const from = remoteUrl(repo, remoteName).replace(/\/+$/, "").replace(/\.git$/, "");
+    gitMerge(ctx, [ref], { pullFrom: `branch '${remoteBranch ?? branch}' of ${from}` });
+  }
 }
 
 export function gitClone(ctx: Ctx, args: string[]) {

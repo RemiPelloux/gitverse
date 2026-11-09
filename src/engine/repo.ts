@@ -127,6 +127,10 @@ export function resolveRev(repo: Repo, rev: string): string | null {
   const [, base, suffix] = m;
   let id: string | null = null;
   if (base === "HEAD" || base === "@") id = headCommitId(repo);
+  else if (base === "ORIG_HEAD") id = repo.origHead ?? null;
+  else if (base === "MERGE_HEAD") id = repo.op?.kind === "merge" ? repo.op.theirs : null;
+  else if (base === "CHERRY_PICK_HEAD") id = repo.op?.kind === "cherry-pick" ? repo.op.theirs : null;
+  else if (base === "REVERT_HEAD") id = repo.op?.kind === "revert" ? repo.op.theirs : null;
   else if (repo.branches[base]) id = repo.branches[base];
   else if (repo.tags[base]) id = repo.tags[base];
   else if (repo.remoteRefs[base]) id = repo.remoteRefs[base];

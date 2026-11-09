@@ -1,6 +1,6 @@
 import { fail, type Ctx } from "./context";
 import { shortId } from "./hash";
-import { currentBranch } from "./repo";
+import { ancestors, currentBranch } from "./repo";
 import { closest } from "./shell";
 import type { HostedRepo, Issue, PullRequest, World } from "./types";
 import { gitMerge, gitSwitch } from "./git/branching";
@@ -159,11 +159,13 @@ function blockers(world: World, host: HostedRepo, pr: PullRequest): Blocker[] {
       explain: `${requesters.join(" and ")} asked for changes. Make them on the ${pr.head} branch, commit, and git push: the pull request updates itself and the reviewer looks again.`,
     });
   const approvals = [...verdicts.values()].filter((v) => v === "approved").length;
-  if (rule && approvals < rule.requiredApprovals)
+  if (rule && approvals < rule.requiredApprovals) {
+    const reviews = `${rule.requiredApprovals} approving review${rule.requiredApprovals === 1 ? "" : "s"}`;
     out.push({
-      message: `Review required: ${approvals}/${rule.requiredApprovals} approving review${rule.requiredApprovals === 1 ? "" : "s"}`,
-      explain: `The ${pr.base} branch is protected: a pull request needs ${rule.requiredApprovals} approving review${rule.requiredApprovals === 1 ? "" : "s"} from someone other than its author before it can be merged.`,
+      message: `Review required: ${approvals}/${reviews}`,
+      explain: `The ${pr.base} branch is protected: a pull request needs ${reviews} from someone other than its author before it can be merged.`,
     });
+  }
   for (const check of rule?.requiredChecks ?? []) {
     const s = checkStatus(host, pr, check);
     if (s !== "pass")
@@ -402,7 +404,7 @@ function prMerge(ctx: Ctx, args: string[]) {
   if (blocked.length)
     fail(
       [`X Pull request #${pr.number} is not mergeable: the base branch policy prohibits the merge.`, ...blocked.map((b) => `  - ${b.message}`)],
-      blocked.map((b) => b.explain).join(" "),
+      blocked.map((b) => b.explain).join("\n"),
     );
   const m = githubMerge(w, host, pr);
   const me = w.user.name;
@@ -462,7 +464,30 @@ function prMerge(ctx: Ctx, args: string[]) {
       ctx.out(`✓ Deleted branch ${pr.head}`, "success");
     }
   }
-  ctx.out(`(Your local ${pr.base} doesn't have the merge yet: run git switch ${pr.base} && git pull)`, "muted");
+  ctx.out(localBaseAdvice(w, pr, tip), "muted");
+}
+
+/**
+ * What to tell the learner about their local copy of the base branch after a merge on GitHub.
+ * If local base only lacks the merge, `git pull` is right. If it holds commits GitHub's base
+ * doesn't have, and those commits all went into the PR (then got squashed or rebased into new
+ * ones), pulling would merge the old copies back in: resetting to origin is the fix.
+ */
+function localBaseAdvice(w: World, pr: PullRequest, tip: string): string {
+  const pull = `(Your local ${pr.base} doesn't have the merge yet: run git switch ${pr.base} && git pull)`;
+  const repo = w.repo;
+  const local = repo?.branches[pr.base];
+  if (!repo || !local) return pull;
+  const onHost = hostedAncestors(w, tip);
+  const localOnly = [...ancestors(repo, local)].filter((id) => !onHost.has(id));
+  if (!localOnly.length) return pull;
+  const inPr = hostedAncestors(w, pr.headCommit);
+  if (!localOnly.every((id) => inPr.has(id))) return pull;
+  const old =
+    pr.mergedWith === "squash"
+      ? `the old, unsquashed commit${localOnly.length === 1 ? "" : "s"}`
+      : `the original commit${localOnly.length === 1 ? "" : "s"}, from before GitHub rebased ${localOnly.length === 1 ? "it" : "them"}`;
+  return `(Your local ${pr.base} still has ${old}, so it has diverged from GitHub's ${pr.base}: git pull would merge the old copy back in. Make it match GitHub instead: git switch ${pr.base} && git fetch && git reset --hard origin/${pr.base})`;
 }
 
 function prClose(ctx: Ctx, args: string[], reopen: boolean) {

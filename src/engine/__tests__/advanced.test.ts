@@ -210,7 +210,7 @@ describe(".gitignore", () => {
     let r = execute(w, "git status");
     expect(text(r)).not.toMatch(/debug\.log|node_modules|\tconfig\.local/);
     expect(text(r)).toMatch(/important\.log/);
-    expect(text(r)).toMatch(/sub\/config\.local/);
+    expect(text(r)).toMatch(/\tsub\/\n/); // wholly untracked folder is collapsed, like real Git
     expect(status(w).map((e) => e.path)).toEqual(["important.log", "sub/config.local"]);
     expect(status(w, { ignored: true }).filter((e) => e.ignored).map((e) => e.path)).toEqual(["config.local", "debug.log", "node_modules/lib/index.js"]);
     r = execute(w, "git status --ignored");
