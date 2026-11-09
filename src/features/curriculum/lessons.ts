@@ -104,7 +104,7 @@ const firstCommit: Lesson = {
     {
       kind: "try",
       title: "Create a file",
-      body: "A project needs at least one file. Create README.md — a file that describes your project. Use the button, the Files panel, or type touch README.md.",
+      body: "A project needs at least one file. Create README.md, a file that describes your project: click “New file” in the Files panel and type its name, use the button below, or type touch README.md. Then click the file to open it and write in it.",
       action: { label: "Create README.md", kind: "create-file", path: "README.md", content: README },
       check: (w) => c.fileExists(w, "README.md"),
       success: "README.md now exists in your working directory. Git sees it, but isn't tracking it yet.",
@@ -202,7 +202,7 @@ const makingChanges: Lesson = {
     {
       kind: "try",
       title: "Edit README.md",
-      body: "Open README.md in the editor and change something — add a line about yourself. (Or press the button to make an edit for you.)",
+      body: "Files are edited right here, no other app needed. In the Files panel, click README.md: it opens in the editor. Add a line about yourself; it saves as you type. Watch its badge turn into M (modified). On a phone, open the Files tab first. (Stuck? Press the button and we'll make the edit for you.)",
       action: { label: "Add a line to README.md", kind: "edit-file", path: "README.md", content: README + "\nMade with ❤ while learning Git.\n" },
       check: (w) => c.isModified(w, "README.md"),
       success: "README.md is now modified: it's different from the last snapshot.",
