@@ -210,6 +210,10 @@ export const fr: Messages = {
     startHere: "Commence ici",
     continueHere: "Continue",
     branchLabel: "chapitre/{id}",
+    courseMap: "Ton parcours",
+    courseProgress: "{done} leçons sur {total} · {pct} %",
+    lessonsCount: "{done}/{total} leçons",
+    unlockAfter: "Se débloque après « {title} »",
   },
   steps: {
     discover: "Découvrir",

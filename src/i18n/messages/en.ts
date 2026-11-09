@@ -209,6 +209,10 @@ export const en = {
     startHere: "Start here",
     continueHere: "Continue",
     branchLabel: "chapter/{id}",
+    courseMap: "Your course",
+    courseProgress: "{done} of {total} lessons · {pct}%",
+    lessonsCount: "{done}/{total} lessons",
+    unlockAfter: "Unlocks after “{title}”",
   },
   steps: {
     discover: "Discover",
